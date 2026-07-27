@@ -19,21 +19,16 @@ enum CertificateTemplateStatus {
 }
 
 model CertificateTemplate {
-  id String @id @default(uuid()) @db.Uuid
-
-  name         String                    @db.VarChar(150)
-  slug         String                    @unique @db.VarChar(64)
-  rewardTitle  String                    @map("reward_title") @db.VarChar(150)
+  id           String                    @id @default(uuid()) @db.Uuid
+  code         String                    @unique @db.VarChar(64)
+  title        String                    @db.VarChar(150)
   description  String?                   @db.Text
   terms        String?                   @db.Text
   validityDays Int                       @map("validity_days")
-  design       Json?
-  metadata     Json?
   status       CertificateTemplateStatus @default(ACTIVE)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  @@index([status])
   @@map("certificate_templates")
 }
