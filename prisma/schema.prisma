@@ -12,26 +12,6 @@ datasource db {
   provider = "postgresql"
 }
 
-enum OrganizationStatus {
-  ACTIVE
-  SUSPENDED
-  ARCHIVED
-}
-
-model Organization {
-  id     String             @id @default(uuid()) @db.Uuid
-  name   String             @db.VarChar(150)
-  slug   String             @unique @db.VarChar(64)
-  status OrganizationStatus @default(ACTIVE)
-
-  certificateTemplates CertificateTemplate[]
-
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
-
-  @@map("organizations")
-}
-
 enum CertificateTemplateStatus {
   ACTIVE
   INACTIVE
@@ -39,12 +19,10 @@ enum CertificateTemplateStatus {
 }
 
 model CertificateTemplate {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @map("organization_id") @db.Uuid
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  id String @id @default(uuid()) @db.Uuid
 
   name         String                    @db.VarChar(150)
-  slug         String                    @db.VarChar(64)
+  slug         String                    @unique @db.VarChar(64)
   rewardTitle  String                    @map("reward_title") @db.VarChar(150)
   description  String?                   @db.Text
   terms        String?                   @db.Text
@@ -56,7 +34,6 @@ model CertificateTemplate {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  @@unique([organizationId, slug])
-  @@index([organizationId, status])
+  @@index([status])
   @@map("certificate_templates")
 }
