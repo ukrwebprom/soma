@@ -21,3 +21,11 @@ export async function createCertificateTemplate(
     },
   });
 }
+
+export async function getCertificateTemplates() {
+  return prisma.certificateTemplate.findMany({
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}

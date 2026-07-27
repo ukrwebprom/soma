@@ -1,7 +1,15 @@
 import { Router } from "express";
-import { createCertificateTemplateController } from "../controllers/certificate-templates.controller.js";
+import {
+  createCertificateTemplateController,
+  getCertificateTemplatesController,
+} from "../controllers/certificate-templates.controller.js";
 
 const certificateTemplatesRouter = Router();
+
+certificateTemplatesRouter.get(
+  "/",
+  getCertificateTemplatesController,
+);
 
 certificateTemplatesRouter.post(
   "/",

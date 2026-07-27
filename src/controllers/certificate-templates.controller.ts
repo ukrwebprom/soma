@@ -1,5 +1,8 @@
 import type { Request, Response } from "express";
-import { createCertificateTemplate } from "../services/certificate-templates.service.js";
+import {
+  createCertificateTemplate,
+  getCertificateTemplates,
+} from "../services/certificate-templates.service.js";
 
 const TEMPLATE_CODE_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -111,6 +114,30 @@ export async function createCertificateTemplateController(
     response.status(500).json({
       error: "INTERNAL_SERVER_ERROR",
       message: "Failed to create certificate template",
+    });
+  }
+}
+
+export async function getCertificateTemplatesController(
+  _request: Request,
+  response: Response,
+): Promise<void> {
+  try {
+    const certificateTemplates =
+      await getCertificateTemplates();
+
+    response.status(200).json({
+      certificateTemplates,
+    });
+  } catch (error) {
+    console.error(
+      "Failed to get certificate templates:",
+      error,
+    );
+
+    response.status(500).json({
+      error: "INTERNAL_SERVER_ERROR",
+      message: "Failed to get certificate templates",
     });
   }
 }
