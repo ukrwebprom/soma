@@ -1,0 +1,69 @@
+@baseUrl = http://localhost:3000/api
+@certificateCode = BKlElgW-Fxn4JO4ArTrz7balJ3PYi5Ef
+
+### Проверка сервера и базы данных
+GET {{baseUrl}}/health
+
+
+### Получить список шаблонов сертификатов
+GET {{baseUrl}}/admin/certificate-templates
+
+
+### Создать новый шаблон сертификата
+POST {{baseUrl}}/admin/certificate-templates
+Content-Type: application/json
+
+{
+  "code": "free-pizza-test-2",
+  "title": "Безкоштовна піца",
+  "description": "Одна піца зі спеціального меню",
+  "terms": "Сертифікат можна використати лише один раз",
+  "validityDays": 10
+}
+
+
+### Выпустить сертификат по существующему шаблону
+POST {{baseUrl}}/admin/certificates
+Content-Type: application/json
+
+{
+  "templateId": "afd5457d-8a51-4165-b045-3057c087d044"
+}
+
+### Проверить сертификат по коду
+GET {{baseUrl}}/certificates/verify/{{certificateCode}}
+
+### Погасить сертификат с PIN оператора
+POST {{baseUrl}}/admin/certificates/{{certificateCode}}/redeem
+Content-Type: application/json
+
+{
+  "pin": "8164"
+}
+
+### Создать оператора
+POST {{baseUrl}}/admin/operators
+Content-Type: application/json
+
+{
+  "name": "Марина"
+}
+
+### Получить все сертификаты
+GET {{baseUrl}}/admin/certificates
+
+
+### Получить активные сертификаты
+GET {{baseUrl}}/admin/certificates?status=ACTIVE
+
+
+### Получить погашенные сертификаты
+GET {{baseUrl}}/admin/certificates?status=REDEEMED
+
+
+### Получить просроченные сертификаты
+GET {{baseUrl}}/admin/certificates?status=EXPIRED
+
+
+### Получить сертификаты постранично
+GET {{baseUrl}}/admin/certificates?status=ALL&page=1&limit=10

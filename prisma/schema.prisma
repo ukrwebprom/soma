@@ -58,9 +58,28 @@ model Certificate {
   expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
   redeemedAt DateTime? @map("redeemed_at") @db.Timestamptz(3)
 
+  redeemedByOperatorId String?   @map("redeemed_by_operator_id") @db.Uuid
+  redeemedByOperator   Operator? @relation(fields: [redeemedByOperatorId], references: [id], onDelete: Restrict)
+
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@index([templateId])
   @@index([status, expiresAt])
+  @@index([redeemedByOperatorId])
   @@map("certificates")
+}
+
+model Operator {
+  id        String  @id @default(uuid()) @db.Uuid
+  name      String  @db.VarChar(100)
+  pinLookup String  @unique @map("pin_lookup") @db.VarChar(64)
+  pinHash   String  @map("pin_hash") @db.Text
+  isActive  Boolean @default(true) @map("is_active")
+
+  redeemedCertificates Certificate[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("operators")
 }
