@@ -19,11 +19,17 @@ enum CertificateTemplateStatus {
 }
 
 model CertificateTemplate {
-  id           String                    @id @default(uuid()) @db.Uuid
-  code         String                    @unique @db.VarChar(64)
-  title        String                    @db.VarChar(150)
-  description  String?                   @db.Text
-  terms        String?                   @db.Text
+  id              String  @id @default(uuid()) @db.Uuid
+  code            String  @unique @db.VarChar(64)
+  title           String  @db.VarChar(150)
+  description     String? @db.Text
+  terms           String? @db.Text
+  instructionText String? @map("instruction_text") @db.Text
+
+  coverPortraitUrl  String? @map("cover_portrait_url") @db.Text
+  coverLandscapeUrl String? @map("cover_landscape_url") @db.Text
+  logoUrl           String? @map("logo_url") @db.Text
+
   validityDays Int                       @map("validity_days")
   status       CertificateTemplateStatus @default(ACTIVE)
 
@@ -48,11 +54,15 @@ model Certificate {
 
   code String @unique @db.VarChar(64)
 
-  title       String  @db.VarChar(150)
-  description String? @db.Text
-  terms       String? @db.Text
+  title           String  @db.VarChar(150)
+  description     String? @db.Text
+  terms           String? @db.Text
+  instructionText String? @map("instruction_text") @db.Text
 
-  status CertificateStatus @default(ACTIVE)
+  coverPortraitUrl  String?           @map("cover_portrait_url") @db.Text
+  coverLandscapeUrl String?           @map("cover_landscape_url") @db.Text
+  logoUrl           String?           @map("logo_url") @db.Text
+  status            CertificateStatus @default(ACTIVE)
 
   issuedAt   DateTime  @default(now()) @map("issued_at") @db.Timestamptz(3)
   expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
