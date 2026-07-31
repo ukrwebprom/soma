@@ -4,6 +4,8 @@ import {
   getCertificateTemplatesController,
 } from "../controllers/certificate-templates.controller.js";
 
+import { certificateTemplateUpload } from "../middleware/certificate-template-upload.js";
+
 const certificateTemplatesRouter = Router();
 
 certificateTemplatesRouter.get(
@@ -13,6 +15,7 @@ certificateTemplatesRouter.get(
 
 certificateTemplatesRouter.post(
   "/",
+  certificateTemplateUpload,
   createCertificateTemplateController,
 );
 

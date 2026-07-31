@@ -1,10 +1,24 @@
+import { randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
+
+import {
+  CertificateAssetUploadError,
+  deleteCertificateAssets,
+  uploadCertificateAsset,
+} from "../services/certificate-assets.service.js";
+
 import {
   createCertificateTemplate,
   getCertificateTemplates,
 } from "../services/certificate-templates.service.js";
 
 const TEMPLATE_CODE_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+interface CertificateTemplateFiles {
+  coverPortrait?: Express.Multer.File[];
+  coverLandscape?: Express.Multer.File[];
+  logo?: Express.Multer.File[];
+}
 
 function isUniqueConstraintError(
   error: unknown,
@@ -34,16 +48,35 @@ export async function createCertificateTemplateController(
       : "";
 
   const description =
-    typeof body.description === "string"
+    typeof body.description === "string" &&
+    body.description.trim()
       ? body.description.trim()
       : null;
 
   const terms =
-    typeof body.terms === "string"
+    typeof body.terms === "string" &&
+    body.terms.trim()
       ? body.terms.trim()
       : null;
 
-  const validityDays = body.validityDays;
+  const instructionText =
+    typeof body.instructionText === "string" &&
+    body.instructionText.trim()
+      ? body.instructionText.trim()
+      : null;
+
+  const validityDays =
+    typeof body.validityDays === "string" ||
+    typeof body.validityDays === "number"
+      ? Number(body.validityDays)
+      : Number.NaN;
+
+  const files =
+    request.files as CertificateTemplateFiles | undefined;
+
+  const coverPortrait = files?.coverPortrait?.[0];
+  const coverLandscape = files?.coverLandscape?.[0];
+  const logo = files?.logo?.[0];
 
   if (!TEMPLATE_CODE_PATTERN.test(code) || code.length > 64) {
     response.status(400).json({
@@ -74,7 +107,6 @@ export async function createCertificateTemplateController(
   }
 
   if (
-    typeof validityDays !== "number" ||
     !Number.isInteger(validityDays) ||
     validityDays <= 0
   ) {
@@ -86,19 +118,89 @@ export async function createCertificateTemplateController(
     return;
   }
 
-  try {
-    const certificateTemplate = await createCertificateTemplate({
-      code,
-      title,
-      description,
-      terms,
-      validityDays,
+  if (!coverPortrait) {
+    response.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: "Portrait cover image is required",
     });
+
+    return;
+  }
+
+  if (!coverLandscape) {
+    response.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: "Landscape cover image is required",
+    });
+
+    return;
+  }
+
+  if (!logo) {
+    response.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: "Logo image is required",
+    });
+
+    return;
+  }
+
+  const templateId = randomUUID();
+  const uploadedPaths: string[] = [];
+
+  try {
+    const portraitAsset = await uploadCertificateAsset({
+      templateId,
+      kind: "cover-portrait",
+      file: coverPortrait,
+    });
+
+    uploadedPaths.push(portraitAsset.storagePath);
+
+    const landscapeAsset = await uploadCertificateAsset({
+      templateId,
+      kind: "cover-landscape",
+      file: coverLandscape,
+    });
+
+    uploadedPaths.push(landscapeAsset.storagePath);
+
+    const logoAsset = await uploadCertificateAsset({
+      templateId,
+      kind: "logo",
+      file: logo,
+    });
+
+    uploadedPaths.push(logoAsset.storagePath);
+
+    const certificateTemplate =
+      await createCertificateTemplate({
+        id: templateId,
+        code,
+        title,
+        description,
+        terms,
+        instructionText,
+        validityDays,
+
+        coverPortraitUrl: portraitAsset.publicUrl,
+        coverLandscapeUrl: landscapeAsset.publicUrl,
+        logoUrl: logoAsset.publicUrl,
+      });
 
     response.status(201).json({
       certificateTemplate,
     });
   } catch (error) {
+    try {
+      await deleteCertificateAssets(uploadedPaths);
+    } catch (cleanupError) {
+      console.error(
+        "Failed to clean up certificate assets:",
+        cleanupError,
+      );
+    }
+
     if (isUniqueConstraintError(error)) {
       response.status(409).json({
         error: "CERTIFICATE_TEMPLATE_CODE_ALREADY_EXISTS",
@@ -109,7 +211,25 @@ export async function createCertificateTemplateController(
       return;
     }
 
-    console.error("Failed to create certificate template:", error);
+    if (error instanceof CertificateAssetUploadError) {
+      console.error(
+        "Failed to upload certificate assets:",
+        error,
+      );
+
+      response.status(502).json({
+        error: "CERTIFICATE_ASSET_UPLOAD_FAILED",
+        message:
+          "Failed to upload certificate template images",
+      });
+
+      return;
+    }
+
+    console.error(
+      "Failed to create certificate template:",
+      error,
+    );
 
     response.status(500).json({
       error: "INTERNAL_SERVER_ERROR",
