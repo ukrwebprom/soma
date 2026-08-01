@@ -1,6 +1,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -55,6 +56,13 @@ function formatDate(value) {
   }).format(date);
 }
 
+function createEmptyCertificateImages() {
+  return {
+    PORTRAIT: null,
+    LANDSCAPE: null,
+  };
+}
+
 function CertificatesListPage() {
   const [searchParams, setSearchParams] =
     useSearchParams();
@@ -84,6 +92,22 @@ function CertificatesListPage() {
     useState(true);
 
   const [error, setError] = useState("");
+
+  const [imageLayout, setImageLayout] =
+  useState("PORTRAIT");
+
+const [certificateImages, setCertificateImages] =
+  useState(createEmptyCertificateImages);
+
+const [isImageLoading, setIsImageLoading] =
+  useState(false);
+
+const [imageError, setImageError] =
+  useState("");
+
+const certificateImagesRef = useRef(
+  createEmptyCertificateImages(),
+);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -213,7 +237,129 @@ function CertificatesListPage() {
     document.body.style.overflow =
       previousOverflow;
   };
-}, [selectedCertificate]);
+}, [selectedCertificate]);useEffect(() => {
+  if (!selectedCertificate) {
+    return undefined;
+  }
+
+  if (certificateImages[imageLayout]) {
+    setImageError("");
+    return undefined;
+  }
+
+  const controller = new AbortController();
+  const requestedLayout = imageLayout;
+
+  async function loadCertificateImage() {
+    setIsImageLoading(true);
+    setImageError("");
+
+    try {
+      const layoutQuery =
+        requestedLayout === "LANDSCAPE"
+          ? "?layout=LANDSCAPE"
+          : "";
+
+      const response = await fetch(
+        `/api/certificates/${encodeURIComponent(
+          selectedCertificate.code,
+        )}/image${layoutQuery}`,
+        {
+          signal: controller.signal,
+        },
+      );
+
+      if (!response.ok) {
+        const errorData = await response
+          .json()
+          .catch(() => null);
+
+        throw new Error(
+          errorData?.message ??
+            `Помилка сервера: ${response.status}`,
+        );
+      }
+
+      const blob = await response.blob();
+      const previewUrl =
+        URL.createObjectURL(blob);
+
+      if (controller.signal.aborted) {
+        URL.revokeObjectURL(previewUrl);
+        return;
+      }
+
+      setCertificateImages((currentImages) => {
+        /*
+         * Запрос мог завершиться после того,
+         * как этот формат уже был загружен.
+         */
+        if (
+          currentImages[requestedLayout]
+        ) {
+          URL.revokeObjectURL(previewUrl);
+          return currentImages;
+        }
+
+        const nextImages = {
+          ...currentImages,
+
+          [requestedLayout]: {
+            blob,
+            previewUrl,
+          },
+        };
+
+        certificateImagesRef.current =
+          nextImages;
+
+        return nextImages;
+      });
+    } catch (requestError) {
+      if (
+        requestError.name === "AbortError"
+      ) {
+        return;
+      }
+
+      console.error(requestError);
+
+      setImageError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Не вдалося створити зображення",
+      );
+    } finally {
+      if (!controller.signal.aborted) {
+        setIsImageLoading(false);
+      }
+    }
+  }
+
+  loadCertificateImage();
+
+  return () => {
+    controller.abort();
+  };
+}, [
+  selectedCertificate,
+  imageLayout,
+  certificateImages,
+]);
+
+useEffect(() => {
+  return () => {
+    Object.values(
+      certificateImagesRef.current,
+    ).forEach((image) => {
+      if (image?.previewUrl) {
+        URL.revokeObjectURL(
+          image.previewUrl,
+        );
+      }
+    });
+  };
+}, []);
 
 const visibleCertificates = useMemo(() => {
   const normalizedSearch =
@@ -286,13 +432,41 @@ function resetFilters() {
   });
 }
 
+function clearCertificateImages() {
+  Object.values(
+    certificateImagesRef.current,
+  ).forEach((image) => {
+    if (image?.previewUrl) {
+      URL.revokeObjectURL(
+        image.previewUrl,
+      );
+    }
+  });
+
+  const emptyImages =
+    createEmptyCertificateImages();
+
+  certificateImagesRef.current =
+    emptyImages;
+
+  setCertificateImages(emptyImages);
+}
+
 function openCertificateDetails(certificate) {
+  clearCertificateImages();
+
   setSelectedCertificate(certificate);
+  setImageLayout("PORTRAIT");
+  setImageError("");
   setCopyMessage("");
 }
 
 function closeCertificateDetails() {
+  clearCertificateImages();
+
   setSelectedCertificate(null);
+  setImageLayout("PORTRAIT");
+  setImageError("");
   setCopyMessage("");
 }
 
@@ -328,6 +502,44 @@ const selectedCertificateTemplate =
         return template.id === templateId;
       })
     : null;
+
+
+function downloadCertificateImage() {
+  const currentImage =
+    certificateImages[imageLayout];
+
+  if (
+    !currentImage ||
+    !selectedCertificate
+  ) {
+    return;
+  }
+
+  const layoutName =
+    imageLayout === "LANDSCAPE"
+      ? "landscape"
+      : "portrait";
+
+  const downloadLink =
+    document.createElement("a");
+
+  downloadLink.href =
+    currentImage.previewUrl;
+
+  downloadLink.download =
+    `certificate-${selectedCertificate.code}-${layoutName}.png`;
+
+  document.body.appendChild(
+    downloadLink,
+  );
+
+  downloadLink.click();
+  downloadLink.remove();
+}
+
+const currentCertificateImage =
+  certificateImages[imageLayout];
+
 
   return (
     <div className="page">
@@ -624,6 +836,115 @@ const selectedCertificateTemplate =
             ] ?? selectedCertificate.status}
           </span>
         </div>
+
+<section className="drawer-section certificate-image-section">
+  <h3>Зображення сертифіката</h3>
+
+  <div
+    className={
+      `certificate-image-preview ` +
+      `certificate-image-preview-${imageLayout.toLowerCase()}`
+    }
+  >
+    {isImageLoading && (
+      <div className="certificate-image-loading">
+        <span className="certificate-image-spinner" />
+
+        <strong>
+          Генеруємо сертифікат…
+        </strong>
+
+        <small>
+          Це може зайняти кілька секунд
+        </small>
+      </div>
+    )}
+
+    {!isImageLoading &&
+      imageError && (
+        <div className="certificate-image-error">
+          <strong>
+            Не вдалося створити зображення
+          </strong>
+
+          <span>{imageError}</span>
+        </div>
+      )}
+
+    {!isImageLoading &&
+      !imageError &&
+      currentCertificateImage && (
+        <img
+          src={
+            currentCertificateImage.previewUrl
+          }
+          alt={
+            imageLayout === "LANDSCAPE"
+              ? "Горизонтальний сертифікат"
+              : "Вертикальний сертифікат"
+          }
+        />
+      )}
+  </div>
+
+  <div className="certificate-image-toolbar">
+    <div
+      className="certificate-layout-switcher"
+      role="radiogroup"
+      aria-label="Формат сертифіката"
+    >
+      <button
+        className={
+          imageLayout === "PORTRAIT"
+            ? "layout-switch-button layout-switch-button-active"
+            : "layout-switch-button"
+        }
+        type="button"
+        role="radio"
+        aria-checked={
+          imageLayout === "PORTRAIT"
+        }
+        onClick={() =>
+          setImageLayout("PORTRAIT")
+        }
+      >
+        Портрет
+      </button>
+
+      <button
+        className={
+          imageLayout === "LANDSCAPE"
+            ? "layout-switch-button layout-switch-button-active"
+            : "layout-switch-button"
+        }
+        type="button"
+        role="radio"
+        aria-checked={
+          imageLayout === "LANDSCAPE"
+        }
+        onClick={() =>
+          setImageLayout("LANDSCAPE")
+        }
+      >
+        Лендскейп
+      </button>
+    </div>
+
+    <button
+      className="certificate-download-button"
+      type="button"
+      disabled={
+        !currentCertificateImage ||
+        isImageLoading
+      }
+      onClick={
+        downloadCertificateImage
+      }
+    >
+      Завантажити PNG
+    </button>
+  </div>
+</section>
 
         <section className="drawer-section">
           <h3>Унікальний код</h3>

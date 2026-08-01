@@ -59,6 +59,11 @@ export async function createCertificate(
       title: template.title,
       description: template.description,
       terms: template.terms,
+      instructionText: template.instructionText,
+
+      coverPortraitUrl: template.coverPortraitUrl,
+      coverLandscapeUrl: template.coverLandscapeUrl,
+      logoUrl: template.logoUrl,
 
       issuedAt,
       expiresAt,

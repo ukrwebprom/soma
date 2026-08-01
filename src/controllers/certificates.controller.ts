@@ -18,6 +18,13 @@ import {
   InvalidOperatorPinError,
 } from "../services/operators.service.js";
 
+import {
+  CertificateImageAssetError,
+  CertificateImageNotFoundError,
+  generateCertificateImage,
+  type CertificateImageLayout,
+} from "../services/certificate-image.service.js";
+
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -331,6 +338,117 @@ export async function getCertificatesController(
     response.status(500).json({
       error: "INTERNAL_SERVER_ERROR",
       message: "Failed to get certificates",
+    });
+  }
+}
+
+export async function getCertificateImageController(
+  request: Request,
+  response: Response,
+): Promise<void> {
+  const code =
+    typeof request.params.code === "string"
+      ? request.params.code.trim()
+      : "";
+
+  const layoutQuery =
+    typeof request.query.layout === "string"
+      ? request.query.layout.toUpperCase()
+      : "PORTRAIT";
+
+  if (!code) {
+    response.status(400).json({
+      error: "CERTIFICATE_CODE_REQUIRED",
+      message: "Certificate code is required",
+    });
+
+    return;
+  }
+
+  if (
+    layoutQuery !== "PORTRAIT" &&
+    layoutQuery !== "LANDSCAPE"
+  ) {
+    response.status(400).json({
+      error: "INVALID_CERTIFICATE_LAYOUT",
+      message:
+        "Layout must be PORTRAIT or LANDSCAPE",
+    });
+
+    return;
+  }
+
+  try {
+    const layout =
+      layoutQuery as CertificateImageLayout;
+
+    const image =
+      await generateCertificateImage(
+        code,
+        layout,
+      );
+
+    const fileLayout =
+      layout === "LANDSCAPE"
+        ? "landscape"
+        : "portrait";
+
+    response.set({
+      "Content-Type": "image/png",
+
+      "Content-Disposition":
+        `inline; filename="certificate-${fileLayout}.png"`,
+
+      "Content-Length":
+        String(image.length),
+
+      "Cache-Control":
+        "private, max-age=300",
+    });
+
+    response.status(200).send(image);
+  } catch (error) {
+    if (
+      error instanceof
+      CertificateImageNotFoundError
+    ) {
+      response.status(404).json({
+        error: "CERTIFICATE_NOT_FOUND",
+        message: "Certificate not found",
+      });
+
+      return;
+    }
+
+    if (
+      error instanceof
+      CertificateImageAssetError
+    ) {
+      console.error(
+        "Certificate image asset error:",
+        error,
+      );
+
+      response.status(422).json({
+        error:
+          "CERTIFICATE_IMAGE_ASSET_ERROR",
+        message: error.message,
+      });
+
+      return;
+    }
+
+    console.error(
+      "Failed to generate certificate image:",
+      error,
+    );
+
+    response.status(500).json({
+      error:
+        "CERTIFICATE_IMAGE_GENERATION_FAILED",
+
+      message:
+        "Failed to generate certificate image",
     });
   }
 }
