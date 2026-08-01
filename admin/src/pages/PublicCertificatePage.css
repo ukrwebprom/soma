@@ -1,0 +1,253 @@
+.public-certificate-page {
+  display: flex;
+  min-height: 100vh;
+  padding: 24px 16px;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(
+      circle at top,
+      #edf0ff 0,
+      transparent 42%
+    ),
+    #f3f5f8;
+  color: #252d3d;
+}
+
+.public-certificate-card {
+  width: min(100%, 460px);
+  overflow: hidden;
+  border: 1px solid #e1e5ea;
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow:
+    0 24px 70px
+    rgba(26, 34, 50, 0.13);
+}
+
+.public-certificate-header {
+  padding: 30px 28px 26px;
+  text-align: center;
+}
+
+.public-product-name {
+  display: block;
+  margin-bottom: 28px;
+  color: #8a93a2;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.public-status-icon {
+  display: flex;
+  width: 74px;
+  height: 74px;
+  margin: 0 auto 18px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 38px;
+  font-weight: 800;
+}
+
+.public-status-icon-active {
+  background: #e2f8ea;
+  color: #187642;
+}
+
+.public-status-icon-redeemed {
+  background: #e7edff;
+  color: #2d49be;
+}
+
+.public-status-icon-expired {
+  background: #f0f1f3;
+  color: #747c89;
+}
+
+.public-status-icon-revoked,
+.public-status-icon-error {
+  background: #fde8e8;
+  color: #ad3030;
+}
+
+.public-certificate-header h1 {
+  margin: 0;
+  color: #202838;
+  font-size: 25px;
+  line-height: 1.25;
+}
+
+.public-status-description {
+  margin: 10px 0 0;
+  color: #6d7685;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.public-certificate-main {
+  padding: 27px 28px 32px;
+  border-top: 1px solid #e9ecf0;
+}
+
+.public-section-label {
+  display: block;
+  margin-bottom: 7px;
+  color: #9098a5;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.public-certificate-main h2 {
+  margin: 0;
+  color: #202838;
+  font-size: 23px;
+  line-height: 1.3;
+}
+
+.public-certificate-description {
+  margin: 10px 0 0;
+  color: #697383;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.public-certificate-details {
+  margin: 24px 0 0;
+}
+
+.public-certificate-details div {
+  display: flex;
+  gap: 20px;
+  padding: 13px 0;
+  justify-content: space-between;
+  border-bottom: 1px solid #edf0f3;
+}
+
+.public-certificate-details dt {
+  color: #848c99;
+  font-size: 13px;
+}
+
+.public-certificate-details dd {
+  margin: 0;
+  color: #303949;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.public-certificate-terms {
+  margin-top: 23px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f6f7f9;
+}
+
+.public-certificate-terms strong {
+  color: #353e4d;
+  font-size: 13px;
+}
+
+.public-certificate-terms p {
+  margin: 7px 0 0;
+  color: #697383;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.public-certificate-code {
+  margin-top: 23px;
+  padding: 14px 16px;
+  border: 1px solid #e0e4e9;
+  border-radius: 12px;
+  background: #fafbfc;
+}
+
+.public-certificate-code span {
+  display: block;
+  margin-bottom: 7px;
+  color: #8b93a0;
+  font-size: 11px;
+}
+
+.public-certificate-code code {
+  display: block;
+  overflow-wrap: anywhere;
+  color: #303949;
+  font-size: 12px;
+}
+
+.public-redeem-button {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 24px;
+  border: 0;
+  border-radius: 12px;
+  background: #263ee8;
+  color: #ffffff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.public-redeem-button:disabled {
+  opacity: 0.55;
+}
+
+.public-redeem-note {
+  margin: 9px 0 0;
+  color: #969da8;
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.public-loading-card {
+  display: flex;
+  min-height: 280px;
+  padding: 30px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: #5f6979;
+}
+
+.public-loader {
+  width: 36px;
+  height: 36px;
+  border: 4px solid #dde2ff;
+  border-top-color: #263ee8;
+  border-radius: 50%;
+  animation: public-loader-spin 700ms linear infinite;
+}
+
+@keyframes public-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 520px) {
+  .public-certificate-page {
+    padding: 0;
+    align-items: stretch;
+    background: #ffffff;
+  }
+
+  .public-certificate-card {
+    width: 100%;
+    min-height: 100vh;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .public-certificate-header {
+    padding-top: 34px;
+  }
+}

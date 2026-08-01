@@ -43,9 +43,9 @@ function AdminLayout() {
 
             <NavLink
               className={getNavigationClass}
-              to="/administrators"
+              to="/operators"
             >
-              Администраторы
+              Оператори
             </NavLink>
           </nav>
 

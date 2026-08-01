@@ -21,9 +21,21 @@ import TemplatesListPage from
 import CertificatesListPage from
   "./pages/CertificatesListPage.jsx";
 
+import PublicCertificatePage from
+  "./pages/PublicCertificatePage.jsx";
+
+import OperatorsPage from
+  "./pages/OperatorsPage.jsx";
+
 function App() {
   return (
     <Routes>
+
+        <Route
+        path="/c/:code"
+        element={<PublicCertificatePage />}
+      />
+
       <Route element={<AdminLayout />}>
         <Route
           index
@@ -50,14 +62,10 @@ function App() {
           element={<CertificatesListPage />}
         />
 
+
         <Route
-          path="administrators"
-          element={
-            <PlaceholderPage
-              title="Администраторы"
-              description="Управление доступом к административной панели SOMA Certificates."
-            />
-          }
+          path="/operators"
+          element={<OperatorsPage />}
         />
 
         <Route

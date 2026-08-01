@@ -480,21 +480,21 @@ async function generatePortraitImage(
 
     {
       input: createTextSvg({
-        width: 880,
-        height: 110,
+        width: 900,
+        height: 140,
         text:
           data.instructionText ??
           "Покажіть QR-код співробітнику закладу",
-        fontSize: 34,
-        lineHeight: 43,
-        maxCharacters: 46,
+        fontSize: 42,
+        lineHeight: 50,
+        maxCharacters: 42,
         maxLines: 2,
         color: "#3f4754",
         fontWeight: 500,
         align: "center",
       }),
-      left: 100,
-      top: 1310,
+      left: 90,
+      top: 1295,
     },
   ];
 
@@ -504,38 +504,37 @@ async function generatePortraitImage(
       "logo",
     );
 
-    // ~30% ширины экрана: 1080 * 0.3 = 324
     const logo = await prepareLogo(
       logoSource,
-      324,
-      150,
+      420,
+      190,
     );
 
     layers.push({
       input: logo,
-      left: 378,
-      top: 1505,
+      left: 330,
+      top: 1490,
     });
   }
 
   layers.push({
     input: createTextSvg({
-      width: 880,
-      height: 65,
+      width: 900,
+      height: 80,
       text:
         `Дійсний до ${formatExpiryDate(
           data.expiresAt,
         )}`,
-      fontSize: 30,
-      lineHeight: 38,
+      fontSize: 40,
+      lineHeight: 46,
       maxCharacters: 50,
       maxLines: 1,
       color: "#596170",
       fontWeight: 600,
       align: "center",
     }),
-    left: 100,
-    top: 1775,
+    left: 90,
+    top: 1760,
   });
 
   return sharp({
@@ -578,30 +577,27 @@ async function generateLandscapeImage(
       left: 0,
       top: 0,
     },
-    {
-      input: createGradientSvg(
-        960,
-        450,
-        0.82,
-      ),
-      left: 0,
-      top: 630,
-    },
+
+    // Заголовок сверху по центру на левой картинке
     {
       input: createTextSvg({
-        width: 820,
-        height: 280,
+        width: 860,
+        height: 190,
         text: data.title,
-        fontSize: 66,
+        fontSize: 68,
         lineHeight: 76,
-        maxCharacters: 23,
-        maxLines: 3,
+        maxCharacters: 24,
+        maxLines: 2,
         color: "#ffffff",
         fontWeight: 700,
+        align: "center",
+        strokeColor: "#111111",
+        strokeWidth: 10,
       }),
-      left: 64,
-      top: 735,
+      left: 50,
+      top: 40,
     },
+
     {
       input: createQrFrameSvg(
         500,
@@ -616,42 +612,24 @@ async function generateLandscapeImage(
       left: 1230,
       top: 130,
     },
+
     {
       input: createTextSvg({
-        width: 760,
-        height: 100,
+        width: 790,
+        height: 125,
         text:
           data.instructionText ??
           "Покажіть QR-код співробітнику закладу",
-        fontSize: 30,
-        lineHeight: 39,
-        maxCharacters: 50,
+        fontSize: 36,
+        lineHeight: 44,
+        maxCharacters: 46,
         maxLines: 2,
         color: "#3f4754",
         fontWeight: 500,
         align: "center",
       }),
-      left: 1060,
-      top: 625,
-    },
-    {
-      input: createTextSvg({
-        width: 760,
-        height: 60,
-        text:
-          `Дійсний до ${formatExpiryDate(
-            data.expiresAt,
-          )}`,
-        fontSize: 28,
-        lineHeight: 36,
-        maxCharacters: 50,
-        maxLines: 1,
-        color: "#596170",
-        fontWeight: 600,
-        align: "center",
-      }),
-      left: 1060,
-      top: 970,
+      left: 1045,
+      top: 615,
     },
   ];
 
@@ -661,18 +639,39 @@ async function generateLandscapeImage(
       "logo",
     );
 
+    // Увеличенный логотип
     const logo = await prepareLogo(
       logoSource,
-      280,
-      120,
+      500,
+      180,
     );
 
     layers.push({
       input: logo,
-      left: 1300,
-      top: 790,
+      left: 1210,
+      top: 770,
     });
   }
+
+  layers.push({
+    input: createTextSvg({
+      width: 790,
+      height: 78,
+      text:
+        `Дійсний до ${formatExpiryDate(
+          data.expiresAt,
+        )}`,
+      fontSize: 36,
+      lineHeight: 42,
+      maxCharacters: 50,
+      maxLines: 1,
+      color: "#596170",
+      fontWeight: 600,
+      align: "center",
+    }),
+    left: 1045,
+    top: 952,
+  });
 
   return sharp({
     create: {
