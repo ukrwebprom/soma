@@ -1,7 +1,6 @@
 import { Router } from "express";
 import {
   createCertificateController,
-  redeemCertificateController,
   getCertificatesController,
 } from "../controllers/certificates.controller.js";
 
@@ -15,11 +14,6 @@ certificatesRouter.get(
 certificatesRouter.post(
   "/",
   createCertificateController,
-);
-
-certificatesRouter.post(
-  "/:code/redeem",
-  redeemCertificateController,
 );
 
 export default certificatesRouter;

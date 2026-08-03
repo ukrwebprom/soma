@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -77,6 +78,8 @@ function formatDateTime(value) {
 
 function PublicCertificatePage() {
   const { code = "" } = useParams();
+  const redeemDialogRef = useRef(null);
+  const pinInputRef = useRef(null);
 
   const [verification, setVerification] =
     useState(null);
@@ -86,6 +89,125 @@ function PublicCertificatePage() {
 
   const [error, setError] =
     useState("");
+
+  const [operatorPin, setOperatorPin] =
+    useState("");
+
+  const [isRedeeming, setIsRedeeming] =
+    useState(false);
+
+  const [redeemError, setRedeemError] =
+    useState("");
+
+  const [redemptionResult, setRedemptionResult] =
+    useState(null);
+
+  const openRedeemDialog = () => {
+    setOperatorPin("");
+    setRedeemError("");
+    setRedemptionResult(null);
+    redeemDialogRef.current?.showModal();
+    pinInputRef.current?.focus();
+  };
+
+  const closeRedeemDialog = () => {
+    if (isRedeeming) {
+      return;
+    }
+
+    redeemDialogRef.current?.close();
+    setOperatorPin("");
+    setRedeemError("");
+    setRedemptionResult(null);
+  };
+
+  const handleRedeem = async (event) => {
+    event.preventDefault();
+
+    if (!/^\d{4}$/.test(operatorPin)) {
+      setRedeemError(
+        "PIN має містити рівно 4 цифри",
+      );
+      pinInputRef.current?.focus();
+      return;
+    }
+
+    setIsRedeeming(true);
+    setRedeemError("");
+
+    try {
+      const response = await fetch(
+        `/api/certificates/${encodeURIComponent(
+          code,
+        )}/redeem`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            pin: operatorPin,
+          }),
+        },
+      );
+
+      const data = await response
+        .json()
+        .catch(() => null);
+
+      if (!response.ok) {
+        const errorMessages = {
+          INVALID_OPERATOR_PIN:
+            "Невірний PIN оператора",
+          CERTIFICATE_NOT_FOUND:
+            "Сертифікат не знайдено",
+          CERTIFICATE_ALREADY_REDEEMED:
+            "Сертифікат уже погашено",
+          CERTIFICATE_REVOKED:
+            "Сертифікат відкликано",
+          CERTIFICATE_EXPIRED:
+            "Термін дії сертифіката завершився",
+          VALIDATION_ERROR:
+            "Перевірте введений PIN",
+        };
+
+        throw new Error(
+          errorMessages[data?.error] ??
+            data?.message ??
+            `Помилка сервера: ${response.status}`,
+        );
+      }
+
+      if (
+        data?.redeemed !== true ||
+        !data?.certificate
+      ) {
+        throw new Error(
+          "Сервер повернув некоректну відповідь",
+        );
+      }
+
+      setVerification((currentVerification) => ({
+        ...currentVerification,
+        valid: false,
+        certificate: {
+          ...currentVerification.certificate,
+          ...data.certificate,
+        },
+      }));
+      setRedemptionResult(data.certificate);
+      setOperatorPin("");
+    } catch (requestError) {
+      console.error(requestError);
+      setRedeemError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Не вдалося погасити сертифікат",
+      );
+    } finally {
+      setIsRedeeming(false);
+    }
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -268,6 +390,16 @@ function PublicCertificatePage() {
                 </dd>
               </div>
             )}
+
+            {certificate.redeemedByOperator?.name && (
+              <div>
+                <dt>Оператор</dt>
+
+                <dd>
+                  {certificate.redeemedByOperator.name}
+                </dd>
+              </div>
+            )}
           </dl>
 
           {certificate.terms && (
@@ -288,20 +420,164 @@ function PublicCertificatePage() {
             <button
               className="public-redeem-button"
               type="button"
-              disabled
+              onClick={openRedeemDialog}
             >
               Погасити сертифікат
             </button>
           )}
-
-          {isActive && (
-            <p className="public-redeem-note">
-              Введення PIN оператора підключимо
-              наступним кроком.
-            </p>
-          )}
         </section>
       </section>
+
+      <dialog
+        ref={redeemDialogRef}
+        className="public-redeem-dialog"
+        aria-labelledby="public-redeem-title"
+        onClick={(event) => {
+          if (event.target === event.currentTarget) {
+            closeRedeemDialog();
+          }
+        }}
+        onCancel={(event) => {
+          if (isRedeeming) {
+            event.preventDefault();
+          }
+        }}
+      >
+        <form
+          className="public-redeem-form"
+          onSubmit={handleRedeem}
+        >
+          {redemptionResult ? (
+            <div className="public-redeem-success">
+              <div className="public-redeem-success-icon">
+                ✓
+              </div>
+
+              <h2 id="public-redeem-title">
+                Сертифікат погашено
+              </h2>
+
+              <p>
+                {redemptionResult.title}
+              </p>
+
+              <dl>
+                <div>
+                  <dt>Оператор</dt>
+                  <dd>
+                    {redemptionResult
+                      .redeemedByOperator?.name ?? "—"}
+                  </dd>
+                </div>
+
+                <div>
+                  <dt>Дата і час</dt>
+                  <dd>
+                    {formatDateTime(
+                      redemptionResult.redeemedAt,
+                    )}
+                  </dd>
+                </div>
+              </dl>
+
+              <button
+                className="public-dialog-confirm"
+                type="button"
+                onClick={closeRedeemDialog}
+              >
+                Готово
+              </button>
+            </div>
+          ) : (
+            <>
+          <header className="public-redeem-dialog-header">
+            <div>
+              <h2 id="public-redeem-title">
+                Погасити сертифікат
+              </h2>
+
+              <p>
+                Введіть особистий PIN оператора,
+                щоб підтвердити погашення.
+              </p>
+            </div>
+
+            <button
+              className="public-dialog-close"
+              type="button"
+              aria-label="Закрити"
+              disabled={isRedeeming}
+              onClick={closeRedeemDialog}
+            >
+              ×
+            </button>
+          </header>
+
+          <label className="public-pin-field">
+            <span>PIN оператора</span>
+
+            <input
+              ref={pinInputRef}
+              type="password"
+              inputMode="numeric"
+              value={operatorPin}
+              placeholder="••••"
+              autoComplete="off"
+              maxLength={4}
+              disabled={isRedeeming}
+              aria-invalid={Boolean(redeemError)}
+              aria-describedby="public-pin-hint"
+              onChange={(event) => {
+                setOperatorPin(
+                  event.target.value
+                    .replace(/\D/g, "")
+                    .slice(0, 4),
+                );
+                setRedeemError("");
+              }}
+            />
+
+            <small id="public-pin-hint">
+              PIN складається з чотирьох цифр.
+            </small>
+          </label>
+
+          {redeemError && (
+            <p
+              className="public-redeem-error"
+              role="alert"
+            >
+              {redeemError}
+            </p>
+          )}
+
+          <footer className="public-redeem-dialog-actions">
+            <button
+              className="public-dialog-cancel"
+              type="button"
+              disabled={isRedeeming}
+              onClick={closeRedeemDialog}
+            >
+              Скасувати
+            </button>
+
+            <button
+              className="public-dialog-confirm"
+              type="submit"
+              disabled={
+                isRedeeming ||
+                !/^\d{4}$/.test(operatorPin)
+              }
+            >
+              {isRedeeming
+                ? "Погашаємо…"
+                : "Погасити"}
+            </button>
+          </footer>
+            </>
+          )}
+        </form>
+      </dialog>
     </main>
   );
 }

@@ -1,11 +1,20 @@
 import { Router } from "express";
-import { verifyCertificateController, getCertificateImageController } from "../controllers/certificates.controller.js";
+import {
+  getCertificateImageController,
+  redeemCertificateController,
+  verifyCertificateController,
+} from "../controllers/certificates.controller.js";
 
 const publicCertificatesRouter = Router();
 
 publicCertificatesRouter.get(
   "/verify/:code",
   verifyCertificateController,
+);
+
+publicCertificatesRouter.post(
+  "/:code/redeem",
+  redeemCertificateController,
 );
 
 publicCertificatesRouter.get(

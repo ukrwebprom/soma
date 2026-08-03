@@ -47,6 +47,13 @@ function AdminLayout() {
             >
               Оператори
             </NavLink>
+
+            <NavLink
+              className={getNavigationClass}
+              to="/redemptions"
+            >
+              Журнал погашень
+            </NavLink>
           </nav>
 
           <div className="admin-account">

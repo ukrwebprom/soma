@@ -27,6 +27,9 @@ import PublicCertificatePage from
 import OperatorsPage from
   "./pages/OperatorsPage.jsx";
 
+import RedemptionsPage from
+  "./pages/RedemptionsPage.jsx";
+
 function App() {
   return (
     <Routes>
@@ -66,6 +69,11 @@ function App() {
         <Route
           path="/operators"
           element={<OperatorsPage />}
+        />
+
+        <Route
+          path="/redemptions"
+          element={<RedemptionsPage />}
         />
 
         <Route

@@ -4,6 +4,7 @@ import certificateTemplatesRouter from "./certificate-templates.routes.js";
 import certificatesRouter from "./certificates.routes.js";
 import publicCertificatesRouter from "./public-certificates.routes.js";
 import operatorsRouter from "./operators.routes.js";
+import redemptionsRouter from "./redemptions.routes.js";
 
 const apiRouter = Router();
 
@@ -27,6 +28,11 @@ apiRouter.use(
 apiRouter.use(
   "/admin/operators",
   operatorsRouter,
+);
+
+apiRouter.use(
+  "/admin/redemptions",
+  redemptionsRouter,
 );
 
 

@@ -30,6 +30,14 @@ export class OperatorNotFoundError
   }
 }
 
+export class OperatorPinAlreadyInUseError
+  extends Error {
+  constructor() {
+    super("Operator PIN is already in use");
+    this.name = "OperatorPinAlreadyInUseError";
+  }
+}
+
 export class InvalidOperatorPinError
   extends Error {
   constructor() {
@@ -194,7 +202,41 @@ export async function setOperatorActive(
 
 export async function resetOperatorPin(
   operatorId: string,
+  requestedPin?: string,
 ) {
+  if (requestedPin) {
+    const pinLookup =
+      createPinLookup(requestedPin);
+    const pinHash = await hashPin(requestedPin);
+
+    try {
+      const operator =
+        await prisma.operator.update({
+          where: { id: operatorId },
+          data: { pinLookup, pinHash },
+          select: {
+            id: true,
+            name: true,
+            isActive: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+
+      return { operator, pin: requestedPin };
+    } catch (error) {
+      if (isPrismaErrorWithCode(error, "P2002")) {
+        throw new OperatorPinAlreadyInUseError();
+      }
+
+      if (isPrismaErrorWithCode(error, "P2025")) {
+        throw new OperatorNotFoundError();
+      }
+
+      throw error;
+    }
+  }
+
   const maximumAttempts = 20;
 
   for (

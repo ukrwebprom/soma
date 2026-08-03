@@ -7,6 +7,7 @@ import {
   createOperator,
   getOperators,
   OperatorNotFoundError,
+  OperatorPinAlreadyInUseError,
   OperatorPinGenerationError,
   resetOperatorPin,
   setOperatorActive,
@@ -223,10 +224,34 @@ export async function resetOperatorPinController(
     return;
   }
 
+  const body =
+    (request.body ?? {}) as Record<
+      string,
+      unknown
+    >;
+
+  const requestedPin =
+    typeof body.pin === "string"
+      ? body.pin.trim()
+      : undefined;
+
+  if (
+    requestedPin !== undefined &&
+    !/^\d{4}$/.test(requestedPin)
+  ) {
+    response.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: "PIN must contain exactly 4 digits",
+    });
+
+    return;
+  }
+
   try {
     const result =
       await resetOperatorPin(
         operatorId,
+        requestedPin,
       );
 
     response.status(200).json(result);
@@ -253,6 +278,18 @@ export async function resetOperatorPinController(
 
         message:
           "Failed to generate a unique operator PIN",
+      });
+
+      return;
+    }
+
+    if (
+      error instanceof
+      OperatorPinAlreadyInUseError
+    ) {
+      response.status(409).json({
+        error: "OPERATOR_PIN_ALREADY_IN_USE",
+        message: "Operator PIN is already in use",
       });
 
       return;

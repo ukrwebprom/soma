@@ -192,18 +192,230 @@
   font: inherit;
   font-size: 15px;
   font-weight: 750;
+  cursor: pointer;
 }
 
-.public-redeem-button:disabled {
-  opacity: 0.55;
+.public-redeem-button:hover {
+  background: #182fd0;
 }
 
-.public-redeem-note {
+.public-redeem-dialog {
+  width: min(460px, calc(100% - 32px));
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 18px;
+  background: #ffffff;
+  color: #202838;
+  box-shadow:
+    0 25px 80px rgba(15, 20, 35, 0.3);
+}
+
+.public-redeem-dialog::backdrop {
+  background: rgba(16, 21, 32, 0.68);
+  backdrop-filter: blur(4px);
+}
+
+.public-redeem-form {
+  padding: 28px;
+}
+
+.public-redeem-dialog-header {
+  display: flex;
+  gap: 22px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.public-redeem-dialog-header h2 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.3;
+}
+
+.public-redeem-dialog-header p {
   margin: 9px 0 0;
-  color: #969da8;
-  font-size: 11px;
+  color: #697283;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.public-dialog-close {
+  display: flex;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: #f1f3f6;
+  color: #3b4452;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.public-dialog-close:hover {
+  background: #e5e8ed;
+}
+
+.public-dialog-close:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.public-pin-field {
+  display: flex;
+  margin-top: 25px;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.public-pin-field > span {
+  color: #303949;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.public-pin-field input {
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 14px;
+  border: 1px solid #cfd5dd;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1d2433;
+  font: inherit;
+  font-size: 22px;
+  letter-spacing: 0.35em;
+}
+
+.public-pin-field input:focus {
+  border-color: #5870e5;
+  outline: 3px solid rgba(88, 112, 229, 0.13);
+}
+
+.public-pin-field input[aria-invalid="true"] {
+  border-color: #d35b5b;
+}
+
+.public-pin-field small {
+  color: #7a8391;
+  font-size: 12px;
+}
+
+.public-redeem-dialog-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 27px;
+}
+
+.public-dialog-cancel,
+.public-dialog-confirm {
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.public-dialog-cancel {
+  border: 1px solid #cfd5dd;
+  background: #ffffff;
+  color: #303949;
+  cursor: pointer;
+}
+
+.public-dialog-confirm {
+  border: 0;
+  background: #263ee8;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.public-dialog-confirm:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.public-redeem-error {
+  margin: 14px 0 0;
+  padding: 11px 13px;
+  border: 1px solid #efb7b7;
+  border-radius: 9px;
+  background: #fff1f1;
+  color: #9d2424;
+  font-size: 12px;
   line-height: 1.45;
+}
+
+.public-redeem-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
+}
+
+.public-redeem-success-icon {
+  display: flex;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 18px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #e2f8ea;
+  color: #187642;
+  font-size: 32px;
+  font-weight: 800;
+}
+
+.public-redeem-success h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.public-redeem-success > p {
+  margin: 8px 0 0;
+  color: #697283;
+  font-size: 14px;
+}
+
+.public-redeem-success dl {
+  width: 100%;
+  margin: 24px 0;
+  overflow: hidden;
+  border: 1px solid #e1e5ea;
+  border-radius: 12px;
+}
+
+.public-redeem-success dl div {
+  display: flex;
+  gap: 20px;
+  padding: 14px 16px;
+  justify-content: space-between;
+  border-bottom: 1px solid #edf0f3;
+}
+
+.public-redeem-success dl div:last-child {
+  border-bottom: 0;
+}
+
+.public-redeem-success dt {
+  color: #7b8493;
+  font-size: 13px;
+}
+
+.public-redeem-success dd {
+  margin: 0;
+  color: #303949;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
 }
 
 .public-loading-card {
@@ -249,5 +461,18 @@
 
   .public-certificate-header {
     padding-top: 34px;
+  }
+
+  .public-redeem-form {
+    padding: 22px;
+  }
+
+  .public-redeem-dialog-actions {
+    flex-direction: column-reverse;
+  }
+
+  .public-dialog-cancel,
+  .public-dialog-confirm {
+    width: 100%;
   }
 }
