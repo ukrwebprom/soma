@@ -7,6 +7,7 @@ import {
 
 import { useSearchParams } from "react-router";
 import "../App.css";
+import { apiUrl } from "../lib/api";
 
 const STATUS_OPTIONS = [
   {
@@ -129,14 +130,14 @@ const certificateImagesRef = useRef(
           templatesResponse,
         ] = await Promise.all([
           fetch(
-            `/api/admin/certificates?${certificateParams}`,
+            apiUrl(`/api/admin/certificates?${certificateParams}`),
             {
               signal: controller.signal,
             },
           ),
 
           fetch(
-            "/api/admin/certificate-templates",
+            apiUrl("/api/admin/certificate-templates"),
             {
               signal: controller.signal,
             },
@@ -261,9 +262,9 @@ const certificateImagesRef = useRef(
           : "";
 
       const response = await fetch(
-        `/api/certificates/${encodeURIComponent(
+        apiUrl(`/api/certificates/${encodeURIComponent(
           selectedCertificate.code,
-        )}/image${layoutQuery}`,
+        )}/image${layoutQuery}`),
         {
           signal: controller.signal,
         },

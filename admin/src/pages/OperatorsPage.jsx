@@ -6,6 +6,7 @@ import {
 } from "react";
 
 import "./OperatorsPage.css";
+import { apiUrl } from "../lib/api";
 
 function formatDate(value) {
   if (!value) {
@@ -132,7 +133,7 @@ function OperatorsPage() {
 
     try {
       const response = await fetch(
-        "/api/admin/operators",
+        apiUrl("/api/admin/operators"),
         {
           method: "POST",
           headers: {
@@ -210,7 +211,7 @@ function OperatorsPage() {
 
     try {
       const response = await fetch(
-        `/api/admin/operators/${operator.id}/status`,
+        apiUrl(`/api/admin/operators/${operator.id}/status`),
         {
           method: "PATCH",
           headers: {
@@ -310,7 +311,7 @@ function OperatorsPage() {
 
     try {
       const response = await fetch(
-        `/api/admin/operators/${pinOperator.id}/reset-pin`,
+        apiUrl(`/api/admin/operators/${pinOperator.id}/reset-pin`),
         {
           method: "POST",
           headers: {
@@ -372,7 +373,7 @@ function OperatorsPage() {
 
       try {
         const response = await fetch(
-          "/api/admin/operators",
+          apiUrl("/api/admin/operators"),
         );
 
         const data = await response

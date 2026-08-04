@@ -7,6 +7,7 @@ import {
 import { useParams } from "react-router";
 
 import "./PublicCertificatePage.css";
+import { apiUrl } from "../lib/api";
 
 const STATUS_CONTENT = {
   ACTIVE: {
@@ -137,9 +138,9 @@ function PublicCertificatePage() {
 
     try {
       const response = await fetch(
-        `/api/certificates/${encodeURIComponent(
+        apiUrl(`/api/certificates/${encodeURIComponent(
           code,
-        )}/redeem`,
+        )}/redeem`),
         {
           method: "POST",
           headers: {
@@ -218,9 +219,9 @@ function PublicCertificatePage() {
 
       try {
         const response = await fetch(
-          `/api/certificates/verify/${encodeURIComponent(
+          apiUrl(`/api/certificates/verify/${encodeURIComponent(
             code,
-          )}`,
+          )}`),
           {
             signal: controller.signal,
           },

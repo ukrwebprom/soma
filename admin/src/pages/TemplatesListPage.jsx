@@ -6,6 +6,7 @@ import {
 } from "react";
 import { Link } from "react-router";
 import "../App.css";
+import { apiUrl } from "../lib/api";
 
 const STATUS_LABELS = {
   ACTIVE: "Активный",
@@ -48,7 +49,7 @@ function TemplatesListPage() {
 
     try {
       const response = await fetch(
-        "/api/admin/certificate-templates",
+        apiUrl("/api/admin/certificate-templates"),
         { signal },
       );
 
@@ -153,7 +154,7 @@ async function createCertificate() {
 
   try {
     const response = await fetch(
-      "/api/admin/certificates",
+      apiUrl("/api/admin/certificates"),
       {
         method: "POST",
 

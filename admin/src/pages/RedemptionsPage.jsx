@@ -5,6 +5,7 @@ import {
 } from "react";
 
 import "./RedemptionsPage.css";
+import { apiUrl } from "../lib/api";
 
 const PAGE_LIMIT = 30;
 
@@ -107,7 +108,7 @@ function RedemptionsPage() {
           );
         }
         const response = await fetch(
-          `/api/admin/redemptions?${params}`,
+          apiUrl(`/api/admin/redemptions?${params}`),
           { signal },
         );
         const data = await response

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import "../App.css";
+import { apiUrl } from "../lib/api";
 
 function FileField({
   name,
@@ -97,7 +98,7 @@ function CreateTemplatePage() {
       const formData = new FormData(form);
 
       const response = await fetch(
-        "/api/admin/certificate-templates",
+        apiUrl("/api/admin/certificate-templates"),
         {
           method: "POST",
           body: formData,
