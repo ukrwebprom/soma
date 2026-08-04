@@ -10,6 +10,7 @@ import {
 import {
   createCertificateTemplate,
   getCertificateTemplates,
+  updateCertificateTemplate,
 } from "../services/certificate-templates.service.js";
 
 const TEMPLATE_CODE_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -258,6 +259,144 @@ export async function getCertificateTemplatesController(
     response.status(500).json({
       error: "INTERNAL_SERVER_ERROR",
       message: "Failed to get certificate templates",
+    });
+  }
+}
+
+export async function updateCertificateTemplateController(
+  request: Request,
+  response: Response,
+): Promise<void> {
+  const id = typeof request.params.id === "string"
+    ? request.params.id
+    : "";
+  const body = (request.body ?? {}) as Record<string, unknown>;
+  const code = typeof body.code === "string"
+    ? body.code.trim().toLowerCase()
+    : "";
+  const title = typeof body.title === "string"
+    ? body.title.trim()
+    : "";
+  const description = typeof body.description === "string" && body.description.trim()
+    ? body.description.trim()
+    : null;
+  const terms = typeof body.terms === "string" && body.terms.trim()
+    ? body.terms.trim()
+    : null;
+  const instructionText =
+    typeof body.instructionText === "string" && body.instructionText.trim()
+      ? body.instructionText.trim()
+      : null;
+  const validityDays =
+    typeof body.validityDays === "string" || typeof body.validityDays === "number"
+      ? Number(body.validityDays)
+      : Number.NaN;
+
+  if (!id) {
+    response.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: "Template id is required",
+    });
+    return;
+  }
+
+  if (!TEMPLATE_CODE_PATTERN.test(code) || code.length > 64) {
+    response.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: "Code may contain lowercase letters, numbers and hyphens",
+    });
+    return;
+  }
+
+  if (!title || title.length > 150) {
+    response.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: "Title is required and must not exceed 150 characters",
+    });
+    return;
+  }
+
+  if (!Number.isInteger(validityDays) || validityDays <= 0) {
+    response.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: "Validity days must be a positive integer",
+    });
+    return;
+  }
+
+  const files = request.files as CertificateTemplateFiles | undefined;
+  const uploads = [
+    ["coverPortraitUrl", "cover-portrait", files?.coverPortrait?.[0]],
+    ["coverLandscapeUrl", "cover-landscape", files?.coverLandscape?.[0]],
+    ["logoUrl", "logo", files?.logo?.[0]],
+  ] as const;
+  const uploadedPaths: string[] = [];
+  const assetUrls: Record<string, string> = {};
+
+  try {
+    for (const [field, kind, file] of uploads) {
+      if (!file) continue;
+
+      const asset = await uploadCertificateAsset({
+        templateId: id,
+        kind,
+        file,
+      });
+      uploadedPaths.push(asset.storagePath);
+      assetUrls[field] = asset.publicUrl;
+    }
+
+    const certificateTemplate = await updateCertificateTemplate(id, {
+      code,
+      title,
+      description,
+      terms,
+      instructionText,
+      validityDays,
+      ...assetUrls,
+    });
+
+    response.status(200).json({ certificateTemplate });
+  } catch (error) {
+    try {
+      await deleteCertificateAssets(uploadedPaths);
+    } catch (cleanupError) {
+      console.error("Failed to clean up certificate assets:", cleanupError);
+    }
+
+    if (isUniqueConstraintError(error)) {
+      response.status(409).json({
+        error: "CERTIFICATE_TEMPLATE_CODE_ALREADY_EXISTS",
+        message: "A certificate template with this code already exists",
+      });
+      return;
+    }
+
+    if (error instanceof CertificateAssetUploadError) {
+      response.status(502).json({
+        error: "CERTIFICATE_ASSET_UPLOAD_FAILED",
+        message: "Failed to upload certificate template images",
+      });
+      return;
+    }
+
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: unknown }).code === "P2025"
+    ) {
+      response.status(404).json({
+        error: "CERTIFICATE_TEMPLATE_NOT_FOUND",
+        message: "Certificate template not found",
+      });
+      return;
+    }
+
+    console.error("Failed to update certificate template:", error);
+    response.status(500).json({
+      error: "INTERNAL_SERVER_ERROR",
+      message: "Failed to update certificate template",
     });
   }
 }

@@ -41,3 +41,39 @@ export async function getCertificateTemplates() {
     },
   });
 }
+
+export interface UpdateCertificateTemplateData {
+  code: string;
+  title: string;
+  description?: string | null;
+  terms?: string | null;
+  instructionText?: string | null;
+  validityDays: number;
+  coverPortraitUrl?: string;
+  coverLandscapeUrl?: string;
+  logoUrl?: string;
+}
+
+export async function updateCertificateTemplate(
+  id: string,
+  data: UpdateCertificateTemplateData,
+) {
+  return prisma.certificateTemplate.update({
+    where: { id },
+    data: {
+      code: data.code,
+      title: data.title,
+      description: data.description ?? null,
+      terms: data.terms ?? null,
+      instructionText: data.instructionText ?? null,
+      validityDays: data.validityDays,
+      ...(data.coverPortraitUrl
+        ? { coverPortraitUrl: data.coverPortraitUrl }
+        : {}),
+      ...(data.coverLandscapeUrl
+        ? { coverLandscapeUrl: data.coverLandscapeUrl }
+        : {}),
+      ...(data.logoUrl ? { logoUrl: data.logoUrl } : {}),
+    },
+  });
+}

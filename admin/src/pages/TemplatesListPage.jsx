@@ -4,14 +4,14 @@ import {
   useRef,
   useState,
 } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import "../App.css";
 import { apiUrl } from "../lib/api";
 
 const STATUS_LABELS = {
-  ACTIVE: "Активный",
-  INACTIVE: "Неактивный",
-  ARCHIVED: "Архивный",
+  ACTIVE: "Активний",
+  INACTIVE: "Неактивний",
+  ARCHIVED: "Архівний",
 };
 
 function formatDate(value) {
@@ -19,7 +19,7 @@ function formatDate(value) {
     return "—";
   }
 
-  return new Intl.DateTimeFormat("ru-RU", {
+  return new Intl.DateTimeFormat("uk-UA", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -27,6 +27,7 @@ function formatDate(value) {
 }
 
 function TemplatesListPage() {
+  const navigate = useNavigate();
   const [templates, setTemplates] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -60,7 +61,7 @@ function TemplatesListPage() {
       if (!response.ok) {
         throw new Error(
           data?.message ??
-            `Ошибка сервера: ${response.status}`,
+            `Помилка сервера: ${response.status}`,
         );
       }
 
@@ -79,7 +80,7 @@ function TemplatesListPage() {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Не удалось получить список шаблонов",
+          : "Не вдалося отримати список шаблонів",
       );
     } finally {
       if (!signal?.aborted) {
@@ -175,7 +176,7 @@ async function createCertificate() {
     if (!response.ok) {
       throw new Error(
         data?.message ??
-          `Ошибка сервера: ${response.status}`,
+          `Помилка сервера: ${response.status}`,
       );
     }
 
@@ -184,7 +185,7 @@ async function createCertificate() {
 
     if (!certificate?.code) {
       throw new Error(
-        "Сервер не вернул код сертификата",
+        "Сервер не повернув код сертифіката",
       );
     }
 
@@ -196,7 +197,7 @@ async function createCertificate() {
     setCreationError(
       requestError instanceof Error
         ? requestError.message
-        : "Не удалось создать сертификат",
+        : "Не вдалося створити сертифікат",
     );
 
     setDialogState("error");
@@ -216,9 +217,7 @@ function handleTemplateMenuAction(action, template) {
   setOpenMenuId(null);
 
   if (action === "edit") {
-    window.alert(
-      `Редагування шаблону "${template.title}" зробимо наступним кроком`,
-    );
+    navigate(`/templates/edit?id=${encodeURIComponent(template.id)}`);
     return;
   }
 
@@ -235,11 +234,11 @@ function handleTemplateMenuAction(action, template) {
         <div className="page-header-row">
           <div>
 
-            <h1>Шаблоны сертификатов</h1>
+            <h1>Шаблони сертифікатів</h1>
 
             <p>
-              Здесь находятся все шаблоны, на основе
-              которых выпускаются цифровые сертификаты.
+              Тут зібрані всі шаблони, на основі яких
+              випускаються цифрові сертифікати.
             </p>
           </div>
 
@@ -247,7 +246,7 @@ function handleTemplateMenuAction(action, template) {
             className="primary-link"
             to="/templates/new"
           >
-            Создать шаблон
+            Створити шаблон
           </Link>
         </div>
       </header>
@@ -255,7 +254,7 @@ function handleTemplateMenuAction(action, template) {
       <main className="page-content">
         <div className="templates-toolbar">
           <span className="templates-count">
-            Шаблонов: {templates.length}
+            Шаблонів: {templates.length}
           </span>
 
           <button
@@ -264,19 +263,19 @@ function handleTemplateMenuAction(action, template) {
             disabled={isLoading}
             onClick={handleRefresh}
           >
-            {isLoading ? "Обновляем..." : "Обновить"}
+            {isLoading ? "Оновлюємо..." : "Оновити"}
           </button>
         </div>
 
         {isLoading && templates.length === 0 && (
           <div className="state-card">
-            Загружаем шаблоны...
+            Завантажуємо шаблони...
           </div>
         )}
 
         {error && (
           <div className="state-card state-card-error">
-            <strong>Не удалось загрузить список</strong>
+            <strong>Не вдалося завантажити список</strong>
             <span>{error}</span>
           </div>
         )}
@@ -285,17 +284,17 @@ function handleTemplateMenuAction(action, template) {
           !error &&
           templates.length === 0 && (
             <div className="state-card">
-              <strong>Шаблонов пока нет</strong>
+              <strong>Шаблонів поки немає</strong>
 
               <span>
-                Создай первый шаблон сертификата.
+                Створіть перший шаблон сертифіката.
               </span>
 
               <Link
                 className="primary-link"
                 to="/templates/new"
               >
-                Создать шаблон
+                Створити шаблон
               </Link>
             </div>
           )}
@@ -320,7 +319,7 @@ function handleTemplateMenuAction(action, template) {
     />
   ) : (
     <div className="cover-placeholder">
-      Нет обложки
+      Немає обкладинки
     </div>
   )}
 
@@ -397,14 +396,14 @@ function handleTemplateMenuAction(action, template) {
 
                     <dl className="template-meta">
                       <div>
-                        <dt>Срок действия</dt>
+                        <dt>Термін дії</dt>
                         <dd>
-                          {template.validityDays} дней
+                          {template.validityDays} днів
                         </dd>
                       </div>
 
                       <div>
-                        <dt>Создан</dt>
+                        <dt>Створено</dt>
                         <dd>
                           {formatDate(
                             template.createdAt,

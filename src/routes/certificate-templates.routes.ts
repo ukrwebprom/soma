@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createCertificateTemplateController,
   getCertificateTemplatesController,
+  updateCertificateTemplateController,
 } from "../controllers/certificate-templates.controller.js";
 
 import { certificateTemplateUpload } from "../middleware/certificate-template-upload.js";
@@ -17,6 +18,12 @@ certificateTemplatesRouter.post(
   "/",
   certificateTemplateUpload,
   createCertificateTemplateController,
+);
+
+certificateTemplatesRouter.patch(
+  "/:id",
+  certificateTemplateUpload,
+  updateCertificateTemplateController,
 );
 
 export default certificateTemplatesRouter;

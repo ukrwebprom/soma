@@ -170,6 +170,7 @@
 .form-actions {
   grid-column: 1 / -1;
   display: flex;
+  gap: 12px;
   justify-content: flex-end;
 }
 
@@ -188,6 +189,15 @@
 
 .form-actions button:hover {
   background: #182fd0;
+}
+
+.form-actions .cancel-button {
+  background: #e8ebf2;
+  color: #303746;
+}
+
+.form-actions .cancel-button:hover {
+  background: #dce1eb;
 }
 
 .form-actions button:disabled {

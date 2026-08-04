@@ -498,9 +498,11 @@ async function generatePortraitImage(
     },
   ];
 
-  if (data.logoUrl) {
+  const logoUrl = data.logoUrl?.trim();
+
+  if (logoUrl) {
     const logoSource = await downloadImage(
-      data.logoUrl,
+      logoUrl,
       "logo",
     );
 
@@ -633,9 +635,11 @@ async function generateLandscapeImage(
     },
   ];
 
-  if (data.logoUrl) {
+  const logoUrl = data.logoUrl?.trim();
+
+  if (logoUrl) {
     const logoSource = await downloadImage(
-      data.logoUrl,
+      logoUrl,
       "logo",
     );
 

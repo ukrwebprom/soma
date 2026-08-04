@@ -13,10 +13,10 @@ function PlaceholderPage({
 
       <main className="page-content">
         <div className="state-card">
-          <strong>Раздел готовится</strong>
+          <strong>Розділ готується</strong>
 
           <span>
-            Здесь скоро появится рабочий интерфейс.
+            Тут незабаром з’явиться робочий інтерфейс.
           </span>
         </div>
       </main>

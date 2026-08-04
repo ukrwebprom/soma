@@ -61,6 +61,11 @@ function App() {
         />
 
         <Route
+          path="templates/edit"
+          element={<CreateTemplatePage mode="edit" />}
+        />
+
+        <Route
           path="certificates"
           element={<CertificatesListPage />}
         />

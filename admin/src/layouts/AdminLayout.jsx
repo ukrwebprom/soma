@@ -25,20 +25,20 @@ function AdminLayout() {
 
           <nav
             className="admin-navigation"
-            aria-label="Главное меню"
+            aria-label="Головне меню"
           >
             <NavLink
               className={getNavigationClass}
               to="/templates"
             >
-              Шаблоны
+              Шаблони
             </NavLink>
 
             <NavLink
               className={getNavigationClass}
               to="/certificates"
             >
-              Сертификаты
+              Сертифікати
             </NavLink>
 
             <NavLink
@@ -62,8 +62,8 @@ function AdminLayout() {
             </div>
 
             <div className="admin-account-text">
-              <strong>Администратор</strong>
-              <span>Локальный режим</span>
+              <strong>Адміністратор</strong>
+              <span>Локальний режим</span>
             </div>
           </div>
         </div>

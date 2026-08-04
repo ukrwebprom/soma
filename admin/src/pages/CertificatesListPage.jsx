@@ -292,8 +292,8 @@ const certificateImagesRef = useRef(
 
       setCertificateImages((currentImages) => {
         /*
-         * Запрос мог завершиться после того,
-         * как этот формат уже был загружен.
+         * Запит міг завершитися після того,
+         * як цей формат уже було завантажено.
          */
         if (
           currentImages[requestedLayout]
