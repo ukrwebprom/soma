@@ -442,6 +442,26 @@ async function generatePortraitImage(
       top: 0,
     },
 
+    // Фиксированная подпись над названием сертификата
+    {
+      input: createTextSvg({
+        width: 940,
+        height: 72,
+        text: "цифровий сертифікат",
+        fontSize: 42,
+        lineHeight: 48,
+        maxCharacters: 40,
+        maxLines: 1,
+        color: "#ffffff",
+        fontWeight: 600,
+        align: "center",
+        strokeColor: "#111111",
+        strokeWidth: 6,
+      }),
+      left: 70,
+      top: 100,
+    },
+
     // Заголовок сверху, по центру, с обводкой
     {
       input: createTextSvg({
@@ -459,7 +479,7 @@ async function generatePortraitImage(
         strokeWidth: 12,
       }),
       left: 70,
-      top: 35,
+      top: 120,
     },
 
     // QR-код наполовину заходит на картинку
@@ -580,7 +600,25 @@ async function generateLandscapeImage(
       top: 0,
     },
 
-    // Заголовок сверху по центру на левой картинке
+    // Фиксированная подпись над QR-кодом
+    {
+      input: createTextSvg({
+        width: 790,
+        height: 64,
+        text: "цифровий сертифікат",
+        fontSize: 36,
+        lineHeight: 42,
+        maxCharacters: 40,
+        maxLines: 1,
+        color: "#3f4754",
+        fontWeight: 600,
+        align: "center",
+      }),
+      left: 1045,
+      top: 45,
+    },
+
+    // Название сертификата внизу левой картинки
     {
       input: createTextSvg({
         width: 860,
@@ -597,7 +635,7 @@ async function generateLandscapeImage(
         strokeWidth: 10,
       }),
       left: 50,
-      top: 40,
+      top: 820,
     },
 
     {
@@ -607,12 +645,12 @@ async function generateLandscapeImage(
         36,
       ),
       left: 1190,
-      top: 90,
+      top: 120,
     },
     {
       input: qrCode,
       left: 1230,
-      top: 130,
+      top: 160,
     },
 
     {
