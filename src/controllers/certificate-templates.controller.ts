@@ -137,15 +137,6 @@ export async function createCertificateTemplateController(
     return;
   }
 
-  if (!logo) {
-    response.status(400).json({
-      error: "VALIDATION_ERROR",
-      message: "Logo image is required",
-    });
-
-    return;
-  }
-
   const templateId = randomUUID();
   const uploadedPaths: string[] = [];
 
@@ -166,13 +157,17 @@ export async function createCertificateTemplateController(
 
     uploadedPaths.push(landscapeAsset.storagePath);
 
-    const logoAsset = await uploadCertificateAsset({
-      templateId,
-      kind: "logo",
-      file: logo,
-    });
+    const logoAsset = logo
+      ? await uploadCertificateAsset({
+          templateId,
+          kind: "logo",
+          file: logo,
+        })
+      : null;
 
-    uploadedPaths.push(logoAsset.storagePath);
+    if (logoAsset) {
+      uploadedPaths.push(logoAsset.storagePath);
+    }
 
     const certificateTemplate =
       await createCertificateTemplate({
@@ -186,7 +181,7 @@ export async function createCertificateTemplateController(
 
         coverPortraitUrl: portraitAsset.publicUrl,
         coverLandscapeUrl: landscapeAsset.publicUrl,
-        logoUrl: logoAsset.publicUrl,
+        logoUrl: logoAsset?.publicUrl ?? null,
       });
 
     response.status(201).json({

@@ -11,7 +11,7 @@ export interface CreateCertificateTemplateData {
 
   coverPortraitUrl: string;
   coverLandscapeUrl: string;
-  logoUrl: string;
+  logoUrl?: string | null;
 }
 
 export async function createCertificateTemplate(
@@ -29,7 +29,7 @@ export async function createCertificateTemplate(
 
       coverPortraitUrl: data.coverPortraitUrl,
       coverLandscapeUrl: data.coverLandscapeUrl,
-      logoUrl: data.logoUrl,
+      logoUrl: data.logoUrl ?? null,
     },
   });
 }

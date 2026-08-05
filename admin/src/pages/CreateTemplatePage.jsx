@@ -354,10 +354,10 @@ function CreateTemplatePage({ mode = "create" }) {
               <FileField
                 name="logo"
                 label="Логотип"
-                hint="PNG або WebP із прозорим фоном"
+                hint="Необов'язково. PNG або WebP із прозорим фоном"
                 preview={previews.logo ?? template?.logoUrl}
                 onChange={handleFileChange}
-                required={!isEditing}
+                required={false}
               />
             </div>
 
@@ -443,13 +443,15 @@ function CreateTemplatePage({ mode = "create" }) {
                 Горизонтальна обкладинка
               </a>
 
-              <a
-                href={createdTemplate.logoUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Логотип
-              </a>
+              {createdTemplate.logoUrl && (
+                <a
+                  href={createdTemplate.logoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Логотип
+                </a>
+              )}
             </div>
           </section>
         )}
