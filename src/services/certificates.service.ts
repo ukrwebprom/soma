@@ -1,9 +1,22 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { prisma } from "../lib/prisma.js";
-import type { Prisma } from "../generated/prisma/client.js";
+import { Prisma } from "../generated/prisma/client.js";
+import { ISSUE_SOURCES } from "../constants/issue-sources.js";
 
 export interface CreateCertificateData {
   templateId: string;
+  issueReason: string;
+  issueComment?: string;
+}
+
+export interface CreateCertificatesBatchData
+  extends CreateCertificateData {
+  quantity: number;
+}
+
+export interface CreateGameCertificateData {
+  templateId: string;
+  sourceEventId?: string;
 }
 
 export class CertificateTemplateNotFoundError extends Error {
@@ -24,15 +37,32 @@ function generateCertificateCode(): string {
   return randomBytes(24).toString("base64url");
 }
 
-export async function createCertificate(
-  data: CreateCertificateData,
+function getCertificateSnapshot(
+  template: Prisma.CertificateTemplateGetPayload<object>,
+  issuedAt: Date,
 ) {
-  const template =
-    await prisma.certificateTemplate.findUnique({
-      where: {
-        id: data.templateId,
-      },
-    });
+  return {
+    templateId: template.id,
+    code: generateCertificateCode(),
+    title: template.title,
+    description: template.description,
+    terms: template.terms,
+    instructionText: template.instructionText,
+    coverPortraitUrl: template.coverPortraitUrl,
+    coverLandscapeUrl: template.coverLandscapeUrl,
+    logoUrl: template.logoUrl,
+    issuedAt,
+    expiresAt: new Date(
+      issuedAt.getTime() +
+        template.validityDays * 24 * 60 * 60 * 1000,
+    ),
+  };
+}
+
+async function getActiveTemplate(templateId: string) {
+  const template = await prisma.certificateTemplate.findUnique({
+    where: { id: templateId },
+  });
 
   if (!template) {
     throw new CertificateTemplateNotFoundError();
@@ -42,33 +72,109 @@ export async function createCertificate(
     throw new CertificateTemplateInactiveError();
   }
 
+  return template;
+}
+
+export async function createCertificate(
+  data: CreateCertificateData,
+) {
+  const template = await getActiveTemplate(data.templateId);
   const issuedAt = new Date();
-
-  const expiresAt = new Date(
-    issuedAt.getTime() +
-      template.validityDays * 24 * 60 * 60 * 1000,
-  );
-
-  const code = generateCertificateCode();
 
   return prisma.certificate.create({
     data: {
-      templateId: template.id,
-      code,
-
-      title: template.title,
-      description: template.description,
-      terms: template.terms,
-      instructionText: template.instructionText,
-
-      coverPortraitUrl: template.coverPortraitUrl,
-      coverLandscapeUrl: template.coverLandscapeUrl,
-      logoUrl: template.logoUrl,
-
-      issuedAt,
-      expiresAt,
+      ...getCertificateSnapshot(template, issuedAt),
+      issueSource: ISSUE_SOURCES.MANUAL,
+      issueReason: data.issueReason,
+      issueComment: data.issueComment ?? null,
+      issueGroupId: null,
+      sourceEventId: null,
     },
   });
+}
+
+export async function createCertificatesBatch(
+  data: CreateCertificatesBatchData,
+) {
+  const template = await getActiveTemplate(data.templateId);
+  const issueGroupId = randomUUID();
+
+  const certificatesData = Array.from(
+    { length: data.quantity },
+    () => ({
+      ...getCertificateSnapshot(template, new Date()),
+      issueSource: ISSUE_SOURCES.MANUAL,
+      issueReason: data.issueReason,
+      issueComment: data.issueComment ?? null,
+      issueGroupId,
+      sourceEventId: null,
+    }),
+  );
+
+  const certificates = await prisma.$transaction(async (tx) => {
+    await tx.certificate.createMany({ data: certificatesData });
+
+    return tx.certificate.findMany({
+      where: { issueGroupId },
+      orderBy: { issuedAt: "asc" },
+      select: { id: true, code: true },
+    });
+  });
+
+  return { issueGroupId, quantity: certificates.length, certificates };
+}
+
+export async function createGameCertificate(
+  data: CreateGameCertificateData,
+) {
+  if (data.sourceEventId) {
+    const existing = await prisma.certificate.findUnique({
+      where: {
+        issueSource_sourceEventId: {
+          issueSource: ISSUE_SOURCES.GAME_NEMO_SUPERSTAR,
+          sourceEventId: data.sourceEventId,
+        },
+      },
+    });
+
+    if (existing) return { certificate: existing, idempotent: true };
+  }
+
+  const template = await getActiveTemplate(data.templateId);
+
+  try {
+    const certificate = await prisma.certificate.create({
+      data: {
+        ...getCertificateSnapshot(template, new Date()),
+        issueSource: ISSUE_SOURCES.GAME_NEMO_SUPERSTAR,
+        issueReason: "Виграш у грі Nemo Superstar",
+        issueComment: null,
+        issueGroupId: null,
+        sourceEventId: data.sourceEventId ?? null,
+      },
+    });
+
+    return { certificate, idempotent: false };
+  } catch (error) {
+    if (
+      data.sourceEventId &&
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      const existing = await prisma.certificate.findUnique({
+        where: {
+          issueSource_sourceEventId: {
+            issueSource: ISSUE_SOURCES.GAME_NEMO_SUPERSTAR,
+            sourceEventId: data.sourceEventId,
+          },
+        },
+      });
+
+      if (existing) return { certificate: existing, idempotent: true };
+    }
+
+    throw error;
+  }
 }
 
 
@@ -229,6 +335,8 @@ export interface GetCertificatesOptions {
   status: CertificateListStatus;
   page: number;
   limit: number;
+  issueSource?: string;
+  issueGroupId?: string;
 }
 
 export async function getCertificates(
@@ -268,6 +376,14 @@ export async function getCertificates(
     };
   }
 
+  if (options.issueSource) {
+    where.issueSource = options.issueSource;
+  }
+
+  if (options.issueGroupId) {
+    where.issueGroupId = options.issueGroupId;
+  }
+
   const skip = (options.page - 1) * options.limit;
 
   const [certificates, total] = await prisma.$transaction([
@@ -288,6 +404,11 @@ export async function getCertificates(
         issuedAt: true,
         expiresAt: true,
         redeemedAt: true,
+        issueSource: true,
+        issueReason: true,
+        issueComment: true,
+        issueGroupId: true,
+        sourceEventId: true,
 
         template: {
           select: {
@@ -332,4 +453,24 @@ export async function getCertificates(
       totalPages: Math.ceil(total / options.limit),
     },
   };
+}
+
+export async function getCertificate(id: string) {
+  const certificate = await prisma.certificate.findUnique({
+    where: { id },
+    include: {
+      template: { select: { id: true, code: true } },
+      redeemedByOperator: { select: { id: true, name: true } },
+    },
+  });
+
+  if (!certificate) throw new CertificateNotFoundError();
+
+  const status: CertificateEffectiveStatus =
+    certificate.status === "ACTIVE" &&
+    certificate.expiresAt <= new Date()
+      ? "EXPIRED"
+      : certificate.status;
+
+  return { ...certificate, status };
 }

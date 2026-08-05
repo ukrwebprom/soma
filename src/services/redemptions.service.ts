@@ -37,6 +37,11 @@ export async function getRedemptions(
           code: true,
           title: true,
           redeemedAt: true,
+          issueSource: true,
+          issueReason: true,
+          issueComment: true,
+          issueGroupId: true,
+          sourceEventId: true,
           redeemedByOperator: {
             select: {
               id: true,

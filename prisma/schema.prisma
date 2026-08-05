@@ -64,6 +64,12 @@ model Certificate {
   logoUrl           String?           @map("logo_url") @db.Text
   status            CertificateStatus @default(ACTIVE)
 
+  issueSource   String  @default("MANUAL") @map("issue_source") @db.VarChar(64)
+  issueReason   String? @map("issue_reason") @db.VarChar(500)
+  issueComment  String? @map("issue_comment") @db.VarChar(2000)
+  issueGroupId  String? @map("issue_group_id") @db.Uuid
+  sourceEventId String? @map("source_event_id") @db.VarChar(255)
+
   issuedAt   DateTime  @default(now()) @map("issued_at") @db.Timestamptz(3)
   expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
   redeemedAt DateTime? @map("redeemed_at") @db.Timestamptz(3)
@@ -73,9 +79,12 @@ model Certificate {
 
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  @@unique([issueSource, sourceEventId])
   @@index([templateId])
   @@index([status, expiresAt])
   @@index([redeemedByOperatorId])
+  @@index([issueSource])
+  @@index([issueGroupId])
   @@map("certificates")
 }
 

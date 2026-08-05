@@ -19,8 +19,10 @@ function AdminLayout() {
             className="admin-brand"
             to="/templates"
           >
-            <span>SOMA</span>
-            <strong>CERTIFICATES</strong>
+            <img
+              src="/logo.png"
+              alt="SOMA Certificates"
+            />
           </Link>
 
           <nav

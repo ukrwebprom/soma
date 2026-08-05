@@ -39,6 +39,11 @@ const STATUS_LABELS = {
   REVOKED: "Відкликаний",
 };
 
+const ISSUE_SOURCE_LABELS = {
+  MANUAL: "Ручний випуск",
+  GAME_NEMO_SUPERSTAR: "Гра Nemo Superstar",
+};
+
 function formatDate(value) {
   if (!value) {
     return "—";
@@ -74,6 +79,9 @@ function CertificatesListPage() {
   const selectedStatus =
     searchParams.get("status") ?? "ALL";
 
+  const selectedIssueGroup =
+    searchParams.get("issueGroup") ?? "ALL";
+
     const searchQuery =
     searchParams.get("q") ?? "";
 
@@ -81,6 +89,12 @@ function CertificatesListPage() {
     useState(null);
 
     const [copyMessage, setCopyMessage] =
+    useState("");
+
+    const [isDetailsLoading, setIsDetailsLoading] =
+    useState(false);
+
+    const [detailsError, setDetailsError] =
     useState("");
 
   const [certificates, setCertificates] =
@@ -362,6 +376,75 @@ useEffect(() => {
   };
 }, []);
 
+const selectedCertificateId = selectedCertificate?.id;
+
+useEffect(() => {
+  if (!selectedCertificateId) {
+    return undefined;
+  }
+
+  const controller = new AbortController();
+
+  async function loadCertificateDetails() {
+    setIsDetailsLoading(true);
+    setDetailsError("");
+
+    try {
+      const response = await fetch(
+        apiUrl(`/api/admin/certificates/${encodeURIComponent(selectedCertificateId)}`),
+        { signal: controller.signal },
+      );
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.message ?? `Помилка сервера: ${response.status}`);
+      }
+
+      if (!controller.signal.aborted && data?.certificate) {
+        setSelectedCertificate((currentCertificate) =>
+          currentCertificate?.id === selectedCertificateId
+            ? { ...currentCertificate, ...data.certificate }
+            : currentCertificate,
+        );
+      }
+    } catch (requestError) {
+      if (requestError.name === "AbortError") return;
+      console.error(requestError);
+      setDetailsError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Не вдалося завантажити деталі сертифіката",
+      );
+    } finally {
+      if (!controller.signal.aborted) setIsDetailsLoading(false);
+    }
+  }
+
+  loadCertificateDetails();
+  return () => controller.abort();
+}, [selectedCertificateId]);
+
+const issueGroupOptions = useMemo(() => {
+  const groups = new Map();
+
+  certificates.forEach((certificate) => {
+    if (
+      certificate.issueGroupId &&
+      !groups.has(certificate.issueGroupId)
+    ) {
+      groups.set(
+        certificate.issueGroupId,
+        certificate.issueReason || "Без причини",
+      );
+    }
+  });
+
+  return Array.from(groups, ([value, label]) => ({
+    value,
+    label,
+  }));
+}, [certificates]);
+
 const visibleCertificates = useMemo(() => {
   const normalizedSearch =
     searchQuery.trim().toLocaleLowerCase("uk-UA");
@@ -389,11 +472,18 @@ const visibleCertificates = useMemo(() => {
       !normalizedSearch ||
       searchableText.includes(normalizedSearch);
 
-    return matchesTemplate && matchesSearch;
+    const matchesIssueGroup =
+      selectedIssueGroup === "ALL" ||
+      (selectedIssueGroup === "NONE"
+        ? !certificate.issueGroupId
+        : certificate.issueGroupId === selectedIssueGroup);
+
+    return matchesTemplate && matchesSearch && matchesIssueGroup;
   });
 }, [
   certificates,
   selectedTemplateId,
+  selectedIssueGroup,
   searchQuery,
 ]);
 
@@ -460,6 +550,7 @@ function openCertificateDetails(certificate) {
   setImageLayout("PORTRAIT");
   setImageError("");
   setCopyMessage("");
+  setDetailsError("");
 }
 
 function closeCertificateDetails() {
@@ -469,6 +560,7 @@ function closeCertificateDetails() {
   setImageLayout("PORTRAIT");
   setImageError("");
   setCopyMessage("");
+  setDetailsError("");
 }
 
 async function copyCertificateCode() {
@@ -491,6 +583,7 @@ async function copyCertificateCode() {
 const hasActiveFilters =
   Boolean(searchQuery) ||
   selectedTemplateId !== "ALL" ||
+  selectedIssueGroup !== "ALL" ||
   selectedStatus !== "ALL";
 
 const selectedCertificateTemplate =
@@ -545,30 +638,33 @@ const currentCertificateImage =
   return (
     <div className="page">
       <header className="page-header">
-        <div>
-          <h1>Сертифікати</h1>
+        <div className="page-header-row">
+          <div>
+            <h1>Сертифікати</h1>
 
-          <p>
-            Усі випущені цифрові сертифікати,
-            їхні статуси та терміни дії.
-          </p>
+            <p>
+              Усі випущені цифрові сертифікати,
+              їхні статуси та терміни дії.
+            </p>
+          </div>
+
+          <label className="filter-field certificate-header-search">
+            <span>Пошук сертифіката</span>
+
+            <input
+              type="search"
+              value={searchQuery}
+              placeholder="Код або назва сертифіката"
+              onChange={(event) =>
+                updateSearch(event.target.value)
+              }
+            />
+          </label>
         </div>
       </header>
 
       <main className="page-content">
         <section className="certificates-filters">
-            <label className="filter-field filter-search">
-            <span>Пошук</span>
-
-            <input
-                type="search"
-                value={searchQuery}
-                placeholder="Код або назва сертифіката"
-                onChange={(event) =>
-                updateSearch(event.target.value)
-                }
-            />
-            </label>
           <label className="filter-field">
             <span>Шаблон</span>
 
@@ -609,6 +705,35 @@ const currentCertificateImage =
               }
             >
               {STATUS_OPTIONS.map((option) => (
+                <option
+                  key={option.value}
+                  value={option.value}
+                >
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="filter-field">
+            <span>Випуск</span>
+
+            <select
+              value={selectedIssueGroup}
+              onChange={(event) =>
+                updateFilter(
+                  "issueGroup",
+                  event.target.value,
+                )
+              }
+            >
+              <option value="ALL">
+                Усі випуски
+              </option>
+
+              <option value="NONE">—</option>
+
+              {issueGroupOptions.map((option) => (
                 <option
                   key={option.value}
                   value={option.value}
@@ -836,7 +961,19 @@ const currentCertificateImage =
               selectedCertificate.status
             ] ?? selectedCertificate.status}
           </span>
+
+          {isDetailsLoading && (
+            <span className="drawer-details-loading">
+              Оновлюємо деталі…
+            </span>
+          )}
         </div>
+
+        {detailsError && (
+          <div className="drawer-details-error">
+            {detailsError}
+          </div>
+        )}
 
 <section className="drawer-section certificate-image-section">
   <h3>Зображення сертифіката</h3>
@@ -968,6 +1105,54 @@ const currentCertificateImage =
               {copyMessage}
             </span>
           )}
+        </section>
+
+        <section className="drawer-section">
+          <h3>Деталі випуску</h3>
+
+          <dl className="drawer-details-list">
+            <div>
+              <dt>Джерело</dt>
+              <dd>
+                {ISSUE_SOURCE_LABELS[selectedCertificate.issueSource] ??
+                  selectedCertificate.issueSource ?? "—"}
+              </dd>
+            </div>
+
+            <div>
+              <dt>Причина випуску</dt>
+              <dd className="drawer-detail-text">
+                {selectedCertificate.issueReason ?? "—"}
+              </dd>
+            </div>
+
+            {selectedCertificate.issueComment && (
+              <div>
+                <dt>Коментар</dt>
+                <dd className="drawer-detail-text">
+                  {selectedCertificate.issueComment}
+                </dd>
+              </div>
+            )}
+
+            {selectedCertificate.issueGroupId && (
+              <div>
+                <dt>ID групи випуску</dt>
+                <dd className="drawer-detail-identifier">
+                  {selectedCertificate.issueGroupId}
+                </dd>
+              </div>
+            )}
+
+            {selectedCertificate.sourceEventId && (
+              <div>
+                <dt>ID події джерела</dt>
+                <dd className="drawer-detail-identifier">
+                  {selectedCertificate.sourceEventId}
+                </dd>
+              </div>
+            )}
+          </dl>
         </section>
 
         <section className="drawer-section">

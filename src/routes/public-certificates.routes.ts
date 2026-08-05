@@ -1,11 +1,17 @@
 import { Router } from "express";
 import {
+  createGameCertificateController,
   getCertificateImageController,
   redeemCertificateController,
   verifyCertificateController,
 } from "../controllers/certificates.controller.js";
 
 const publicCertificatesRouter = Router();
+
+publicCertificatesRouter.post(
+  "/",
+  createGameCertificateController,
+);
 
 publicCertificatesRouter.get(
   "/verify/:code",

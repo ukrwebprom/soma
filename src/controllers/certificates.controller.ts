@@ -7,8 +7,11 @@ import {
   CertificateTemplateInactiveError,
   CertificateTemplateNotFoundError,
   createCertificate,
+  createCertificatesBatch,
+  createGameCertificate,
   redeemCertificate,
   verifyCertificate,
+  getCertificate,
   getCertificates,
   type CertificateListStatus,
 } from "../services/certificates.service.js";
@@ -29,6 +32,15 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const PIN_PATTERN = /^\d{4}$/;
+const ISSUE_REASON_MAX_LENGTH = 500;
+const ISSUE_COMMENT_MAX_LENGTH = 2000;
+const SOURCE_EVENT_ID_MAX_LENGTH = 255;
+
+function getTrimmedOptionalString(value: unknown) {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim();
+  return normalized || undefined;
+}
 
 const CERTIFICATE_LIST_STATUSES =
   new Set<CertificateListStatus>([
@@ -57,6 +69,8 @@ export async function createCertificateController(
     typeof body.templateId === "string"
       ? body.templateId.trim()
       : "";
+  const issueReason = getTrimmedOptionalString(body.issueReason);
+  const issueComment = getTrimmedOptionalString(body.issueComment);
 
   if (!UUID_PATTERN.test(templateId)) {
     response.status(400).json({
@@ -67,9 +81,27 @@ export async function createCertificateController(
     return;
   }
 
+  if (!issueReason || issueReason.length > ISSUE_REASON_MAX_LENGTH) {
+    response.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: "issueReason is required and must not exceed 500 characters",
+    });
+    return;
+  }
+
+  if (issueComment && issueComment.length > ISSUE_COMMENT_MAX_LENGTH) {
+    response.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: "issueComment must not exceed 2000 characters",
+    });
+    return;
+  }
+
   try {
     const certificate = await createCertificate({
       templateId,
+      issueReason,
+      issueComment,
     });
 
     response.status(201).json({
@@ -287,6 +319,8 @@ export async function getCertificatesController(
     typeof request.query.limit === "string"
       ? request.query.limit
       : "20";
+  const issueSource = getTrimmedOptionalString(request.query.issueSource);
+  const issueGroupId = getTrimmedOptionalString(request.query.issueGroupId);
 
   if (!isCertificateListStatus(statusValue)) {
     response.status(400).json({
@@ -295,6 +329,16 @@ export async function getCertificatesController(
         "Status must be ALL, ACTIVE, REDEEMED, REVOKED or EXPIRED",
     });
 
+    return;
+  }
+
+  if (issueSource && issueSource.length > 64) {
+    response.status(400).json({ error: "VALIDATION_ERROR", message: "issueSource must not exceed 64 characters" });
+    return;
+  }
+
+  if (issueGroupId && !UUID_PATTERN.test(issueGroupId)) {
+    response.status(400).json({ error: "VALIDATION_ERROR", message: "issueGroupId must be a valid UUID" });
     return;
   }
 
@@ -329,6 +373,8 @@ export async function getCertificatesController(
       status: statusValue,
       page,
       limit,
+      issueSource,
+      issueGroupId,
     });
 
     response.status(200).json(result);
@@ -339,6 +385,28 @@ export async function getCertificatesController(
       error: "INTERNAL_SERVER_ERROR",
       message: "Failed to get certificates",
     });
+  }
+}
+
+export async function getCertificateController(
+  request: Request,
+  response: Response,
+): Promise<void> {
+  const id = typeof request.params.id === "string" ? request.params.id.trim() : "";
+  if (!UUID_PATTERN.test(id)) {
+    response.status(400).json({ error: "VALIDATION_ERROR", message: "A valid certificate id is required" });
+    return;
+  }
+  try {
+    const certificate = await getCertificate(id);
+    response.status(200).json({ certificate });
+  } catch (error) {
+    if (error instanceof CertificateNotFoundError) {
+      response.status(404).json({ error: "CERTIFICATE_NOT_FOUND", message: "Certificate not found" });
+      return;
+    }
+    console.error("Failed to get certificate:", error);
+    response.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "Failed to get certificate" });
   }
 }
 
@@ -450,5 +518,92 @@ export async function getCertificateImageController(
       message:
         "Failed to generate certificate image",
     });
+  }
+}
+
+export async function createCertificatesBatchController(
+  request: Request,
+  response: Response,
+): Promise<void> {
+  const body = (request.body ?? {}) as Record<string, unknown>;
+  const templateId = getTrimmedOptionalString(body.templateId) ?? "";
+  const issueReason = getTrimmedOptionalString(body.issueReason);
+  const issueComment = getTrimmedOptionalString(body.issueComment);
+  const quantity = body.quantity;
+
+  if (!UUID_PATTERN.test(templateId)) {
+    response.status(400).json({ error: "VALIDATION_ERROR", message: "A valid templateId is required" });
+    return;
+  }
+  if (!Number.isInteger(quantity) || (quantity as number) < 1 || (quantity as number) > 1000) {
+    response.status(400).json({ error: "VALIDATION_ERROR", message: "quantity must be an integer between 1 and 1000" });
+    return;
+  }
+  if (!issueReason || issueReason.length > ISSUE_REASON_MAX_LENGTH) {
+    response.status(400).json({ error: "VALIDATION_ERROR", message: "issueReason is required and must not exceed 500 characters" });
+    return;
+  }
+  if (issueComment && issueComment.length > ISSUE_COMMENT_MAX_LENGTH) {
+    response.status(400).json({ error: "VALIDATION_ERROR", message: "issueComment must not exceed 2000 characters" });
+    return;
+  }
+
+  try {
+    const result = await createCertificatesBatch({
+      templateId,
+      quantity: quantity as number,
+      issueReason,
+      issueComment,
+    });
+    response.status(201).json(result);
+  } catch (error) {
+    if (error instanceof CertificateTemplateNotFoundError) {
+      response.status(404).json({ error: "CERTIFICATE_TEMPLATE_NOT_FOUND", message: "Certificate template not found" });
+      return;
+    }
+    if (error instanceof CertificateTemplateInactiveError) {
+      response.status(409).json({ error: "CERTIFICATE_TEMPLATE_INACTIVE", message: "Certificates cannot be issued from an inactive template" });
+      return;
+    }
+    console.error("Failed to create certificate batch:", error);
+    response.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "Failed to create certificates" });
+  }
+}
+
+export async function createGameCertificateController(
+  request: Request,
+  response: Response,
+): Promise<void> {
+  const body = (request.body ?? {}) as Record<string, unknown>;
+  const templateId = getTrimmedOptionalString(body.templateId) ?? "";
+  const sourceEventId = getTrimmedOptionalString(body.sourceEventId);
+
+  if (!UUID_PATTERN.test(templateId)) {
+    response.status(400).json({ error: "VALIDATION_ERROR", message: "A valid templateId is required" });
+    return;
+  }
+  if (body.sourceEventId !== undefined && !sourceEventId) {
+    response.status(400).json({ error: "VALIDATION_ERROR", message: "sourceEventId must not be empty" });
+    return;
+  }
+  if (sourceEventId && sourceEventId.length > SOURCE_EVENT_ID_MAX_LENGTH) {
+    response.status(400).json({ error: "VALIDATION_ERROR", message: "sourceEventId must not exceed 255 characters" });
+    return;
+  }
+
+  try {
+    const result = await createGameCertificate({ templateId, sourceEventId });
+    response.status(result.idempotent ? 200 : 201).json(result);
+  } catch (error) {
+    if (error instanceof CertificateTemplateNotFoundError) {
+      response.status(404).json({ error: "CERTIFICATE_TEMPLATE_NOT_FOUND", message: "Certificate template not found" });
+      return;
+    }
+    if (error instanceof CertificateTemplateInactiveError) {
+      response.status(409).json({ error: "CERTIFICATE_TEMPLATE_INACTIVE", message: "Certificates cannot be issued from an inactive template" });
+      return;
+    }
+    console.error("Failed to create game certificate:", error);
+    response.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "Failed to create certificate" });
   }
 }

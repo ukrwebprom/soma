@@ -42,6 +42,10 @@ function TemplatesListPage() {
 
   const [creationError, setCreationError] = useState("");
 
+  const [quantity, setQuantity] = useState("1");
+  const [issueReason, setIssueReason] = useState("");
+  const [issueComment, setIssueComment] = useState("");
+
   const [openMenuId, setOpenMenuId] = useState(null);
 
   const loadTemplates = useCallback(async (signal) => {
@@ -123,6 +127,9 @@ function TemplatesListPage() {
   setSelectedTemplate(template);
   setCreatedCertificate(null);
   setCreationError("");
+  setQuantity("1");
+  setIssueReason("");
+  setIssueComment("");
   setDialogState("confirm");
 
   if (!certificateDialogRef.current?.open) {
@@ -142,6 +149,9 @@ function resetCertificateDialog() {
   setSelectedTemplate(null);
   setCreatedCertificate(null);
   setCreationError("");
+  setQuantity("1");
+  setIssueReason("");
+  setIssueComment("");
   setDialogState("confirm");
 }
 
@@ -154,8 +164,21 @@ async function createCertificate() {
   setCreationError("");
 
   try {
+    const normalizedQuantity = Number(quantity);
+    const normalizedReason = issueReason.trim();
+    const normalizedComment = issueComment.trim();
+
+    if (!Number.isInteger(normalizedQuantity) || normalizedQuantity < 1 || normalizedQuantity > 1000) {
+      throw new Error("Кількість має бути цілим числом від 1 до 1000");
+    }
+
+    if (!normalizedReason) {
+      throw new Error("Вкажіть причину випуску");
+    }
+
+    const isBatch = normalizedQuantity > 1;
     const response = await fetch(
-      apiUrl("/api/admin/certificates"),
+      apiUrl(isBatch ? "/api/admin/certificates/batch" : "/api/admin/certificates"),
       {
         method: "POST",
 
@@ -165,6 +188,9 @@ async function createCertificate() {
 
         body: JSON.stringify({
           templateId: selectedTemplate.id,
+          ...(isBatch ? { quantity: normalizedQuantity } : {}),
+          issueReason: normalizedReason,
+          ...(normalizedComment ? { issueComment: normalizedComment } : {}),
         }),
       },
     );
@@ -180,8 +206,14 @@ async function createCertificate() {
       );
     }
 
-    const certificate =
-      data?.certificate ?? data;
+    const certificate = isBatch
+      ? {
+          ...(data?.certificates?.[0] ?? {}),
+          quantity: data?.quantity,
+          issueGroupId: data?.issueGroupId,
+          title: selectedTemplate.title,
+        }
+      : data?.certificate ?? data;
 
     if (!certificate?.code) {
       throw new Error(
@@ -444,56 +476,89 @@ function handleTemplateMenuAction(action, template) {
       <>
         <div className="dialog-heading">
           <span className="dialog-label">
-            Випуск сертифіката
+            Випуск сертифіката за шаблоном
           </span>
-
-          <h2>Створити новий сертифікат?</h2>
-
-          <p>
-            Буде створено чинний сертифікат за
-            шаблоном:
-          </p>
         </div>
 
-        <div className="selected-template">
-          {selectedTemplate?.coverPortraitUrl && (
-            <img
-              src={
-                selectedTemplate.coverPortraitUrl
-              }
-              alt=""
-            />
-          )}
+        <form
+          className="certificate-issue-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            createCertificate();
+          }}
+        >
+          <div className="selected-template">
+            {selectedTemplate?.coverPortraitUrl && (
+              <img
+                src={selectedTemplate.coverPortraitUrl}
+                alt=""
+              />
+            )}
 
-          <div>
-            <strong>
-              {selectedTemplate?.title}
-            </strong>
-
-            <span>
-              Дійсний протягом{" "}
-              {selectedTemplate?.validityDays} днів
-            </span>
+            <div>
+              <strong>{selectedTemplate?.title}</strong>
+              <span>
+                Дійсний протягом{" "}
+                {selectedTemplate?.validityDays} днів
+              </span>
+            </div>
           </div>
-        </div>
 
-        <div className="dialog-actions">
-          <button
-            className="dialog-secondary-button"
-            type="button"
-            onClick={closeCertificateDialog}
-          >
-            Скасувати
-          </button>
+          <div className="certificate-issue-fields">
+            <label>
+              <span>Кількість</span>
+              <input
+                type="number"
+                min="1"
+                max="1000"
+                step="1"
+                required
+                value={quantity}
+                onChange={(event) => setQuantity(event.target.value)}
+              />
+            </label>
 
-          <button
-            className="dialog-primary-button"
-            type="button"
-            onClick={createCertificate}
-          >
-            Створити
-          </button>
-        </div>
+            <label>
+              <span>Причина випуску</span>
+              <textarea
+                rows="3"
+                maxLength="500"
+                required
+                placeholder="Наприклад: Літня акція 2026"
+                value={issueReason}
+                onChange={(event) => setIssueReason(event.target.value)}
+              />
+            </label>
+
+            <label>
+              <span>Коментар</span>
+              <textarea
+                rows="4"
+                maxLength="2000"
+                placeholder="Необов'язковий коментар"
+                value={issueComment}
+                onChange={(event) => setIssueComment(event.target.value)}
+              />
+            </label>
+          </div>
+
+          <div className="dialog-actions">
+            <button
+              className="dialog-secondary-button"
+              type="button"
+              onClick={closeCertificateDialog}
+            >
+              Скасувати
+            </button>
+
+            <button
+              className="dialog-primary-button"
+              type="submit"
+            >
+              Створити
+            </button>
+          </div>
+        </form>
       </>
     )}
 
@@ -522,7 +587,11 @@ function handleTemplateMenuAction(action, template) {
               Готово
             </span>
 
-            <h2>Сертифікат створено</h2>
+            <h2>
+              {createdCertificate.quantity > 1
+                ? `Створено сертифікатів: ${createdCertificate.quantity}`
+                : "Сертифікат створено"}
+            </h2>
 
             <p>
               {createdCertificate.title ??
@@ -531,18 +600,19 @@ function handleTemplateMenuAction(action, template) {
           </div>
 
           <dl className="created-certificate-info">
-            <div>
-              <dt>Дійсний до</dt>
-
-              <dd>
-                {formatDate(
-                  createdCertificate.expiresAt,
-                )}
-              </dd>
-            </div>
+            {createdCertificate.expiresAt && (
+              <div>
+                <dt>Дійсний до</dt>
+                <dd>{formatDate(createdCertificate.expiresAt)}</dd>
+              </div>
+            )}
 
             <div>
-              <dt>Унікальний код</dt>
+              <dt>
+                {createdCertificate.quantity > 1
+                  ? "Перший код"
+                  : "Унікальний код"}
+              </dt>
 
               <dd className="certificate-code">
                 {createdCertificate.code}
