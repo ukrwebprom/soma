@@ -1706,6 +1706,35 @@
   background: #edf0f4;
 }
 
+.certificate-issue-mode-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.certificate-issue-mode-switcher {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.certificate-issue-fields .certificate-quantity-field {
+  display: flex;
+  min-width: 120px;
+  align-items: center;
+  flex: 1 1 auto;
+  gap: 10px;
+}
+
+.certificate-quantity-field span {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.certificate-quantity-field input {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .layout-switch-button {
   min-height: 36px;
   padding: 7px 13px;

@@ -42,7 +42,8 @@ function TemplatesListPage() {
 
   const [creationError, setCreationError] = useState("");
 
-  const [quantity, setQuantity] = useState("1");
+  const [issueMode, setIssueMode] = useState("single");
+  const [quantity, setQuantity] = useState("10");
   const [issueReason, setIssueReason] = useState("");
   const [issueComment, setIssueComment] = useState("");
 
@@ -127,7 +128,8 @@ function TemplatesListPage() {
   setSelectedTemplate(template);
   setCreatedCertificate(null);
   setCreationError("");
-  setQuantity("1");
+  setIssueMode("single");
+  setQuantity("10");
   setIssueReason("");
   setIssueComment("");
   setDialogState("confirm");
@@ -149,7 +151,8 @@ function resetCertificateDialog() {
   setSelectedTemplate(null);
   setCreatedCertificate(null);
   setCreationError("");
-  setQuantity("1");
+  setIssueMode("single");
+  setQuantity("10");
   setIssueReason("");
   setIssueComment("");
   setDialogState("confirm");
@@ -164,7 +167,7 @@ async function createCertificate() {
   setCreationError("");
 
   try {
-    const normalizedQuantity = Number(quantity);
+    const normalizedQuantity = issueMode === "series" ? Number(quantity) : 1;
     const normalizedReason = issueReason.trim();
     const normalizedComment = issueComment.trim();
 
@@ -176,7 +179,7 @@ async function createCertificate() {
       throw new Error("Вкажіть причину випуску");
     }
 
-    const isBatch = normalizedQuantity > 1;
+    const isBatch = issueMode === "series";
     const response = await fetch(
       apiUrl(isBatch ? "/api/admin/certificates/batch" : "/api/admin/certificates"),
       {
@@ -270,7 +273,7 @@ function handleTemplateMenuAction(action, template) {
 
             <p>
               Тут зібрані всі шаблони, на основі яких
-              випускаються цифрові сертифікати.
+              створюються цифрові сертифікати.
             </p>
           </div>
 
@@ -505,18 +508,48 @@ function handleTemplateMenuAction(action, template) {
           </div>
 
           <div className="certificate-issue-fields">
-            <label>
-              <span>Кількість</span>
-              <input
-                type="number"
-                min="1"
-                max="1000"
-                step="1"
-                required
-                value={quantity}
-                onChange={(event) => setQuantity(event.target.value)}
-              />
-            </label>
+            <div className="certificate-issue-mode-row">
+              <div
+                className="certificate-layout-switcher certificate-issue-mode-switcher"
+                role="group"
+                aria-label="Режим випуску сертифікатів"
+              >
+                <button
+                  type="button"
+                  className={`layout-switch-button${issueMode === "single" ? " layout-switch-button-active" : ""}`}
+                  aria-pressed={issueMode === "single"}
+                  onClick={() => setIssueMode("single")}
+                >
+                  Один сертифікат
+                </button>
+                <button
+                  type="button"
+                  className={`layout-switch-button${issueMode === "series" ? " layout-switch-button-active" : ""}`}
+                  aria-pressed={issueMode === "series"}
+                  onClick={() => {
+                    setIssueMode("series");
+                    setQuantity("10");
+                  }}
+                >
+                  Серія
+                </button>
+              </div>
+
+              {issueMode === "series" && (
+                <label className="certificate-quantity-field">
+                  <span>Кількість</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="1000"
+                    step="1"
+                    required
+                    value={quantity}
+                    onChange={(event) => setQuantity(event.target.value)}
+                  />
+                </label>
+              )}
+            </div>
 
             <label>
               <span>Причина випуску</span>

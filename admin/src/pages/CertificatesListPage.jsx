@@ -716,7 +716,7 @@ const currentCertificateImage =
           </label>
 
           <label className="filter-field">
-            <span>Випуск</span>
+            <span>Серія</span>
 
             <select
               value={selectedIssueGroup}
@@ -728,10 +728,10 @@ const currentCertificateImage =
               }
             >
               <option value="ALL">
-                Усі випуски
+                Усі сертифікати
               </option>
 
-              <option value="NONE">—</option>
+              <option value="NONE">Без серії</option>
 
               {issueGroupOptions.map((option) => (
                 <option
@@ -1108,7 +1108,7 @@ const currentCertificateImage =
         </section>
 
         <section className="drawer-section">
-          <h3>Деталі випуску</h3>
+          <h3>Деталі серії</h3>
 
           <dl className="drawer-details-list">
             <div>
@@ -1137,7 +1137,7 @@ const currentCertificateImage =
 
             {selectedCertificate.issueGroupId && (
               <div>
-                <dt>ID групи випуску</dt>
+                <dt>ID групи серії</dt>
                 <dd className="drawer-detail-identifier">
                   {selectedCertificate.issueGroupId}
                 </dd>
