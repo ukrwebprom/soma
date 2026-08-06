@@ -9,6 +9,11 @@ import { apiUrl } from "../lib/api";
 
 const PAGE_LIMIT = 30;
 
+const ISSUE_SOURCE_LABELS = {
+  MANUAL: "Ручний випуск",
+  GAME_NEMO_SUPERSTAR: "Гра Nemo Superstar",
+};
+
 function toLocalInputValue(date) {
   const timezoneOffset =
     date.getTimezoneOffset() * 60_000;
@@ -52,6 +57,24 @@ function formatDateTime(value) {
   }).format(date);
 }
 
+function formatDate(value) {
+  if (!value) {
+    return "—";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return new Intl.DateTimeFormat("uk-UA", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+}
+
 function shortenCode(code) {
   if (!code || code.length <= 14) {
     return code || "—";
@@ -81,6 +104,14 @@ function RedemptionsPage() {
   const [appliedRange, setAppliedRange] =
     useState({ from: "", to: "" });
   const [filterError, setFilterError] =
+    useState("");
+  const [selectedRedemption, setSelectedRedemption] =
+    useState(null);
+  const [isDetailsLoading, setIsDetailsLoading] =
+    useState(false);
+  const [detailsError, setDetailsError] =
+    useState("");
+  const [copyMessage, setCopyMessage] =
     useState("");
 
   const loadRedemptions = useCallback(
@@ -161,6 +192,102 @@ function RedemptionsPage() {
 
     return () => controller.abort();
   }, [loadRedemptions]);
+
+  const selectedCertificateId =
+    selectedRedemption?.certificateId;
+
+  useEffect(() => {
+    if (!selectedCertificateId) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+
+    async function loadCertificateDetails() {
+      setIsDetailsLoading(true);
+      setDetailsError("");
+
+      try {
+        const response = await fetch(
+          apiUrl(`/api/admin/certificates/${encodeURIComponent(selectedCertificateId)}`),
+          { signal: controller.signal },
+        );
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          throw new Error(
+            data?.message ?? `Помилка сервера: ${response.status}`,
+          );
+        }
+
+        if (!controller.signal.aborted && data?.certificate) {
+          setSelectedRedemption((current) =>
+            current?.certificateId === selectedCertificateId
+              ? { ...current, ...data.certificate }
+              : current,
+          );
+        }
+      } catch (requestError) {
+        if (requestError.name === "AbortError") {
+          return;
+        }
+
+        console.error(requestError);
+        setDetailsError(
+          requestError instanceof Error
+            ? requestError.message
+            : "Не вдалося завантажити деталі сертифіката",
+        );
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsDetailsLoading(false);
+        }
+      }
+    }
+
+    loadCertificateDetails();
+    return () => controller.abort();
+  }, [selectedCertificateId]);
+
+  useEffect(() => {
+    if (!selectedRedemption) {
+      return undefined;
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        setSelectedRedemption(null);
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selectedRedemption]);
+
+  function closeRedemptionDetails() {
+    setSelectedRedemption(null);
+    setDetailsError("");
+    setCopyMessage("");
+  }
+
+  async function copyCertificateCode() {
+    if (!selectedRedemption?.code) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(selectedRedemption.code);
+      setCopyMessage("Код скопійовано");
+    } catch {
+      setCopyMessage("Не вдалося скопіювати код");
+    }
+  }
 
   const applyRange = (from, to) => {
     setFromValue(from);
@@ -379,7 +506,22 @@ function RedemptionsPage() {
 
                 <tbody>
                   {redemptions.map((redemption) => (
-                    <tr key={redemption.certificateId}>
+                    <tr
+                      key={redemption.certificateId}
+                      className="redemptions-table-row"
+                      tabIndex="0"
+                      onClick={() => {
+                        setSelectedRedemption(redemption);
+                        setCopyMessage("");
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelectedRedemption(redemption);
+                          setCopyMessage("");
+                        }
+                      }}
+                    >
                       <td>
                         {formatDateTime(
                           redemption.redeemedAt,
@@ -443,6 +585,158 @@ function RedemptionsPage() {
           </section>
         )}
       </main>
+
+      {selectedRedemption && (
+        <div
+          className="certificate-details-overlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closeRedemptionDetails();
+            }
+          }}
+        >
+          <aside
+            className="certificate-details-drawer"
+            aria-label="Інформація про погашений сертифікат"
+          >
+            <header className="drawer-header">
+              <div>
+                <span className="drawer-eyebrow">Сертифікат</span>
+                <h2>{selectedRedemption.title}</h2>
+              </div>
+
+              <button
+                className="drawer-close-button"
+                type="button"
+                aria-label="Закрити"
+                onClick={closeRedemptionDetails}
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="drawer-content">
+              <div className="drawer-status-row">
+                <span className="certificate-status certificate-status-redeemed">
+                  Погашений
+                </span>
+
+                {isDetailsLoading && (
+                  <span className="drawer-details-loading">
+                    Оновлюємо деталі…
+                  </span>
+                )}
+              </div>
+
+              {detailsError && (
+                <div className="drawer-details-error">{detailsError}</div>
+              )}
+
+              <section className="drawer-section">
+                <h3>Унікальний код</h3>
+                <div className="drawer-code-box">
+                  <code>{selectedRedemption.code}</code>
+                  <button type="button" onClick={copyCertificateCode}>
+                    Копіювати
+                  </button>
+                </div>
+                {copyMessage && (
+                  <span className="copy-message">{copyMessage}</span>
+                )}
+              </section>
+
+              <section className="drawer-section">
+                <h3>Інформація</h3>
+                <dl className="drawer-details-list">
+                  <div>
+                    <dt>Джерело</dt>
+                    <dd>
+                      {ISSUE_SOURCE_LABELS[selectedRedemption.issueSource] ??
+                        selectedRedemption.issueSource ?? "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Причина випуску</dt>
+                    <dd className="drawer-detail-text">
+                      {selectedRedemption.issueReason ?? "—"}
+                    </dd>
+                  </div>
+                  {selectedRedemption.issueComment && (
+                    <div>
+                      <dt>Коментар</dt>
+                      <dd className="drawer-detail-text">
+                        {selectedRedemption.issueComment}
+                      </dd>
+                    </div>
+                  )}
+                  {selectedRedemption.issueGroupId && (
+                    <div>
+                      <dt>ID серії</dt>
+                      <dd className="drawer-detail-identifier">
+                        {selectedRedemption.issueGroupId}
+                      </dd>
+                    </div>
+                  )}
+                  {selectedRedemption.sourceEventId && (
+                    <div>
+                      <dt>ID події джерела</dt>
+                      <dd className="drawer-detail-identifier">
+                        {selectedRedemption.sourceEventId}
+                      </dd>
+                    </div>
+                  )}
+                  <div>
+                    <dt>Шаблон</dt>
+                    <dd>
+                      {selectedRedemption.template?.title ??
+                        selectedRedemption.template?.code ?? "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Дата випуску</dt>
+                    <dd>{formatDate(selectedRedemption.issuedAt)}</dd>
+                  </div>
+                  <div>
+                    <dt>Дійсний до</dt>
+                    <dd>{formatDate(selectedRedemption.expiresAt)}</dd>
+                  </div>
+                  <div>
+                    <dt>Погашено</dt>
+                    <dd>{formatDateTime(selectedRedemption.redeemedAt)}</dd>
+                  </div>
+                  <div>
+                    <dt>Оператор</dt>
+                    <dd>
+                      {selectedRedemption.redeemedByOperator?.name ??
+                        selectedRedemption.operator?.name ?? "—"}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
+
+              <section className="drawer-section">
+                <h3>Вміст сертифіката</h3>
+                <div className="drawer-text-content">
+                  {selectedRedemption.description && (
+                    <p>{selectedRedemption.description}</p>
+                  )}
+                  {selectedRedemption.terms && (
+                    <p>
+                      <strong>Умови:</strong>{" "}
+                      {selectedRedemption.terms}
+                    </p>
+                  )}
+                  {!selectedRedemption.description &&
+                    !selectedRedemption.terms && (
+                      <p>Додаткового опису немає.</p>
+                    )}
+                </div>
+              </section>
+            </div>
+          </aside>
+        </div>
+      )}
     </div>
   );
 }

@@ -62,6 +62,26 @@ function formatDate(value) {
   }).format(date);
 }
 
+function formatDateTime(value) {
+  if (!value) {
+    return "—";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return new Intl.DateTimeFormat("uk-UA", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 function createEmptyCertificateImages() {
   return {
     PORTRAIT: null,
@@ -1108,7 +1128,7 @@ const currentCertificateImage =
         </section>
 
         <section className="drawer-section">
-          <h3>Деталі серії</h3>
+          <h3>Інформація</h3>
 
           <dl className="drawer-details-list">
             <div>
@@ -1137,7 +1157,7 @@ const currentCertificateImage =
 
             {selectedCertificate.issueGroupId && (
               <div>
-                <dt>ID групи серії</dt>
+                <dt>ID серії</dt>
                 <dd className="drawer-detail-identifier">
                   {selectedCertificate.issueGroupId}
                 </dd>
@@ -1152,13 +1172,6 @@ const currentCertificateImage =
                 </dd>
               </div>
             )}
-          </dl>
-        </section>
-
-        <section className="drawer-section">
-          <h3>Інформація</h3>
-
-          <dl className="drawer-details-list">
             <div>
               <dt>Шаблон</dt>
 
@@ -1194,7 +1207,7 @@ const currentCertificateImage =
                 <dt>Погашено</dt>
 
                 <dd>
-                  {formatDate(
+                  {formatDateTime(
                     selectedCertificate.redeemedAt,
                   )}
                 </dd>

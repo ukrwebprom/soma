@@ -166,6 +166,15 @@
   background: #fafbff;
 }
 
+.redemptions-table-row {
+  cursor: pointer;
+}
+
+.redemptions-table-row:focus-visible {
+  outline: 3px solid rgba(38, 62, 232, 0.2);
+  outline-offset: -3px;
+}
+
 .redemptions-table td strong {
   color: #283141;
   font-size: 14px;
